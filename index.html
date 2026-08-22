@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f5964" />
+    <title>Plan Salmon | Salaya St.68</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand"><span class="brand-mark">S</span><div><strong>Plan Salmon</strong><small>Makro Salaya • St.68</small></div></div>
+      <div class="header-actions"><button class="ghost" id="resetBtn">เริ่มใหม่</button><button class="secondary" id="exportBtn">Export CSV</button><button class="primary" id="printBtn">พิมพ์แผน</button></div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div><p class="eyebrow">FRESH SALMON INBOUND PLANNER</p><h1>วางแผนปลาแซลมอนสด<br><span>ให้พอดีทุกช่วงรอบเข้า DC</span></h1><p class="lede">คำนวณจากยอดหน้าร้าน ออเดอร์ลูกค้าประจำ โปรโมชัน และสต๊อกคงเหลือ — ใช้หน่วยหลักเป็น “ลัง”</p></div>
+        <div class="rule-card"><span>มาตรฐานสินค้า</span><strong>1 ลัง = <b>22</b> กก.</strong><small>เทียบเท่า 4 ตัว • ปลาเฉลี่ย 5–6 กก./ตัว</small></div>
+      </section>
+
+      <section class="kpis" aria-label="สรุปแผน">
+        <article><span>แนะนำให้เข้า</span><strong id="totalCartons">0</strong><small>ลัง</small></article>
+        <article><span>น้ำหนักรวม</span><strong id="totalKg">0</strong><small>กก.</small></article>
+        <article><span>มูลค่าประมาณ</span><strong id="totalValue">฿0</strong><small>ตามราคาคาดการณ์</small></article>
+        <article class="status-card"><span>สต๊อกปลายรอบ</span><strong id="endStock">0</strong><small id="stockStatus">—</small></article>
+      </section>
+
+      <section class="workspace">
+        <aside class="settings panel">
+          <div class="panel-title"><div><p class="eyebrow">01 / INPUT</p><h2>ตั้งค่าแผน</h2></div><span class="pill">St.68</span></div>
+          <div class="form-grid">
+            <label>สาขา<input id="branch" value="SALAYA" /></label>
+            <label>DC<input id="dc" type="number" value="953" /></label>
+            <label>SKU หลัก<input id="sku" type="number" value="129101" /></label>
+            <label>ราคา / กก. (บาท)<input id="price" type="number" value="369" min="0" /></label>
+            <label>สต๊อกต้นงวด (ลัง)<input id="openingStock" type="number" value="0" min="0" step="0.5" /></label>
+            <label>Safety stock (ลัง)<input id="safetyStock" type="number" value="5" min="0" step="0.5" /></label>
+            <label>ใช้ยอดลูกค้าช่วง<select id="planMode"><option value="mid">ค่ากลางของช่วง</option><option value="high">ค่าสูงเพื่อเผื่อของ</option></select></label>
+            <label>น้ำหนัก / ลัง<input id="kgPerCarton" type="number" value="22" min="1" step="0.1" /></label>
+          </div>
+          <div class="hint"><b>วิธีคิด:</b> ยอดหน้าร้านต้องไม่รวมออเดอร์ลูกค้าประจำ เพื่อป้องกันการนับยอดซ้ำ</div>
+        </aside>
+
+        <section class="planner panel">
+          <div class="panel-title"><div><p class="eyebrow">02 / DC ARRIVALS</p><h2>แผนแต่ละรอบเข้า DC</h2></div><span class="legend"><i></i> แก้ไขได้</span></div>
+          <div class="table-wrap">
+            <table id="roundTable">
+              <thead><tr><th>รอบ</th><th>วันเข้า DC</th><th>วันครอบคลุม</th><th>หน้าร้าน / วัน</th><th>ลูกค้าประจำ</th><th>โปรโมชันเพิ่ม</th><th>Demand</th><th>สต๊อกก่อนเข้า</th><th>แนะนำเข้า</th><th>กก.</th><th>ปลายรอบ</th></tr></thead>
+              <tbody id="roundRows"></tbody>
+            </table>
+          </div>
+          <p class="formula">สูตร: <b>แนะนำเข้า</b> = ปัดขึ้น [Demand ครอบคลุม + Safety stock − สต๊อกก่อนเข้า]</p>
+        </section>
+      </section>
+
+      <section class="panel customers-panel">
+        <div class="panel-title"><div><p class="eyebrow">03 / CUSTOMER ORDERS</p><h2>ออเดอร์ลูกค้าประจำ</h2><p class="muted">`15–20` คือจำนวนลัง: กรอก Min 15 และ Max 20 • หากระบุเป็น “ตัว” ระบบจะแปลง 4 ตัว = 1 ลัง</p></div><button class="secondary" id="addCustomerBtn">+ เพิ่มลูกค้า</button></div>
+        <div class="table-wrap"><table id="customerTable"><thead><tr><th>รอบเข้า DC</th><th>ชื่อลูกค้า</th><th>หน่วย</th><th>Min</th><th>Max</th><th>ยืนยันแล้ว</th><th>ใช้วางแผน (ลัง)</th><th>กก.</th><th></th></tr></thead><tbody id="customerRows"></tbody></table></div>
+      </section>
+
+      <section class="panel guidance"><div class="guidance-icon">✓</div><div><h2>เช็กก่อนส่งแผน</h2><p>ตรวจสต๊อกจริง ยอดลูกค้าที่ยืนยันแล้ว ยอดโปรโมชัน และวัน/เวลาเข้าของ DC ก่อนอนุมัติแผนทุกครั้ง</p></div><button class="primary" id="saveBtn">บันทึกในเครื่อง</button><span id="saveState" class="save-state"></span></section>
+    </main>
+    <template id="customerTemplate"><tr><td><select class="customer-round"><option value="1">รอบ 1</option><option value="2">รอบ 2</option><option value="3">รอบ 3</option></select></td><td><input class="customer-name" placeholder="ชื่อลูกค้า" /></td><td><select class="customer-unit"><option value="carton">ลัง</option><option value="fish">ตัว</option></select></td><td><input class="customer-min" type="number" value="0" min="0" step="0.5" /></td><td><input class="customer-max" type="number" value="0" min="0" step="0.5" /></td><td><input class="customer-confirmed" type="number" value="0" min="0" step="0.5" /></td><td class="customer-selected">0</td><td class="customer-kg">0</td><td><button class="icon-button delete-customer" aria-label="ลบลูกค้า">×</button></td></tr></template>
+    <script src="app.js"></script>
+  </body>
+</html>

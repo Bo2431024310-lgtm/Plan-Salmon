@@ -1,0 +1,11 @@
+{
+  "name": "plan-salmon",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Salmon inbound planning tool for Makro Salaya St.68",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs"
+  }
+}
