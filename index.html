@@ -21,10 +21,24 @@
 
       <section class="source-gate" id="sourceGate">
         <div class="source-icon">↑</div><div><p class="eyebrow">เริ่มต้นสร้างแผน</p><h2>อัปโหลดไฟล์ Fresh Salmon TO DC ก่อน</h2><p>ระบบจะอ่านชีต <b>“ราคาสินค้า”</b> เพื่อเลือกสินค้าและราคาที่ใช้ในใบแพลน</p></div>
-        <label class="primary upload-source"><input id="sourceFile" type="file" accept=".xlsx,.xls" />เลือกไฟล์ Excel</label><small id="sourceStatus">รองรับไฟล์ .xlsx และ .xls</small>
+        <div class="source-actions"><label class="secondary upload-source"><input id="sourceFile" type="file" accept=".xlsx,.xls" />เลือกไฟล์ Excel</label><button class="primary" id="readSourceBtn" disabled>อ่านไฟล์และเริ่มวางแผน</button></div><small id="sourceStatus">ขั้นที่ 1: เลือกไฟล์ .xlsx หรือ .xls</small>
       </section>
 
       <div id="plannerContent" hidden>
+      <section class="priority-area" aria-label="ข้อมูลที่ใช้วางแผน">
+        <section class="panel customers-panel">
+          <div class="panel-title"><div><p class="eyebrow">01 / CUSTOMER ORDERS</p><h2>ออเดอร์ลูกค้าประจำ</h2><p class="muted">กรอกออเดอร์ก่อน ระบบจะนำยอดไปคำนวณแผนเข้า DC ทันที</p></div><button class="secondary" id="addCustomerBtn">+ เพิ่มลูกค้า</button></div>
+          <div class="order-guide"><b>ช่วง 15–20</b> = จำนวนลัง • หากออเดอร์เป็น <b>ตัว</b> ระบบจะแปลง 4 ตัว = 1 ลัง</div>
+          <div class="table-wrap"><table id="customerTable"><thead><tr><th>รอบเข้า DC</th><th>ชื่อลูกค้า</th><th>หน่วย</th><th>Min</th><th>Max</th><th>ยืนยันแล้ว</th><th>ใช้วางแผน (ลัง)</th><th>กก.</th><th></th></tr></thead><tbody id="customerRows"></tbody></table></div>
+        </section>
+        <section class="price-band panel" aria-label="ราคาสินค้าแซลมอน">
+          <div class="panel-title price-panel-title"><div><p class="eyebrow">02 / SALMON PRICE</p><h2>ราคาปลาตามรอบ DC</h2></div><strong id="pricePeriodLabel">มีผล 25–31 Aug 2026</strong></div>
+          <label class="upload-price"><span>แหล่งข้อมูล</span><small id="priceFileStatus">นำเข้าจาก Fresh Salmon TO DC แล้ว</small></label>
+          <div class="price-dates"><label class="date-field">ETA DC<input id="etaDates" value="24, 26, 28 Aug 2026" /></label><label class="date-field">ช่วงราคามีผล<input id="pricePeriod" value="25–31 Aug 2026" /></label></div>
+          <div class="table-wrap"><table class="price-table"><thead><tr><th>สินค้า</th><th>ปกติ</th><th>1 ลัง</th><th>10 ลัง</th></tr></thead><tbody id="priceRows"></tbody></table></div>
+        </section>
+      </section>
+
       <section class="weekly-plan" aria-label="ใบแพลนปลาแซลมอนสด">
         <div class="weekly-title"><p>ใบแพลนพร้อมส่ง / พิมพ์</p><h2>แพลนปลาแซลมอนสด รอบเข้าสาขา</h2><strong id="weeklyDates">—</strong><span id="weeklyPricePeriod">ราคาอ้างอิง —</span></div>
         <div class="weekly-grid"><div class="weekly-product"><span>สินค้า</span><strong id="weeklyProduct">Fresh Salmon 5–6 kg</strong><small>SKU <b id="weeklySku">129101</b> • ราคา <b id="weeklyPrice">฿0</b> / กก.</small></div><div class="weekly-total"><span>รวมแผนเข้า</span><strong id="weeklyCartons">0 ลัง</strong><small id="weeklyKg">0 กก.</small></div><div class="weekly-total accent"><span>มูลค่าประมาณ</span><strong id="weeklyValue">฿0</strong><small>ตามราคาที่อัปโหลด</small></div></div>
@@ -47,14 +61,7 @@
             <label>ใช้ยอดลูกค้าช่วง<select id="planMode"><option value="mid">ค่ากลางของช่วง</option><option value="high">ค่าสูงเพื่อเผื่อของ</option></select></label>
             <label>น้ำหนัก / ลัง<input id="kgPerCarton" type="number" value="22" min="1" step="0.1" /></label>
           </div>
-          <section class="price-band" aria-label="ราคาสินค้าแซลมอน">
-            <div class="price-band-title"><span>ราคา Salmon ตามรอบ DC</span><strong id="pricePeriodLabel">มีผล 25–31 Aug 2026</strong></div>
-            <label class="upload-price"><span>แหล่งข้อมูล</span><small id="priceFileStatus">นำเข้าจาก Fresh Salmon TO DC แล้ว</small></label>
-            <label class="date-field">ETA DC<input id="etaDates" value="24, 26, 28 Aug 2026" /></label>
-            <label class="date-field">ช่วงราคามีผล<input id="pricePeriod" value="25–31 Aug 2026" /></label>
-            <table class="price-table"><thead><tr><th>สินค้า</th><th>ปกติ</th><th>1 ลัง</th><th>10 ลัง</th></tr></thead><tbody id="priceRows"></tbody></table>
-          </section>
-          <div class="hint"><b>วิธีคิด:</b> อัปโหลดไฟล์ Fresh Salmon TO DC แล้วระบบจะอ่าน “ราคาสินค้า” และสร้างใบแพลนด้านบนอัตโนมัติ</div>
+          <div class="hint"><b>วิธีคิด:</b> เลือกสินค้าและระดับราคาจากส่วนราคาปลาด้านบน แล้วระบบจะสร้างใบแพลนอัตโนมัติ</div>
         </aside>
 
         <section class="planner panel">
@@ -67,11 +74,6 @@
           </div>
           <p class="formula">สูตร: <b>แนะนำเข้า</b> = ปัดขึ้น [Demand ครอบคลุม + Safety stock − สต๊อกก่อนเข้า]</p>
         </section>
-      </section>
-
-      <section class="panel customers-panel">
-        <div class="panel-title"><div><p class="eyebrow">03 / CUSTOMER ORDERS</p><h2>ออเดอร์ลูกค้าประจำ</h2><p class="muted">`15–20` คือจำนวนลัง: กรอก Min 15 และ Max 20 • หากระบุเป็น “ตัว” ระบบจะแปลง 4 ตัว = 1 ลัง</p></div><button class="secondary" id="addCustomerBtn">+ เพิ่มลูกค้า</button></div>
-        <div class="table-wrap"><table id="customerTable"><thead><tr><th>รอบเข้า DC</th><th>ชื่อลูกค้า</th><th>หน่วย</th><th>Min</th><th>Max</th><th>ยืนยันแล้ว</th><th>ใช้วางแผน (ลัง)</th><th>กก.</th><th></th></tr></thead><tbody id="customerRows"></tbody></table></div>
       </section>
 
       <section class="panel guidance"><div class="guidance-icon">✓</div><div><h2>เช็กก่อนส่งแผน</h2><p>ตรวจสต๊อกจริง ยอดลูกค้าที่ยืนยันแล้ว ยอดโปรโมชัน และวัน/เวลาเข้าของ DC ก่อนอนุมัติแผนทุกครั้ง</p></div><button class="primary" id="saveBtn">บันทึกในเครื่อง</button><span id="saveState" class="save-state"></span></section>
