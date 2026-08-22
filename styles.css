@@ -28,3 +28,13 @@ main { max-width:1440px; margin:0 auto; padding:45px clamp(18px,4vw,56px) 60px; 
 .weekly-plan { margin:0 0 22px; }
 @media (max-width:1000px) { .priority-area { grid-template-columns:1fr; }.price-band.panel { max-width:none; } }
 @media (max-width:600px) { .priority-area { gap:14px; margin:18px 0; }.price-dates { grid-template-columns:1fr; }.price-panel-title { align-items:flex-start; flex-direction:column; gap:7px; }.price-band .upload-price { align-items:flex-start; flex-direction:column; }.price-band .upload-price small { margin-left:0; text-align:left; } }
+
+.customer-library { margin:22px 0; border-color:#bfdad6; background:linear-gradient(150deg,#fffdfa 0%,#f3fbf9 100%); }
+.customer-library .panel-title { margin-bottom:10px; }
+.customer-actions { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:8px; }
+.upload-customer { display:inline-flex; align-items:center; white-space:nowrap; cursor:pointer; }
+.upload-customer input { display:none; }
+.import-status { margin:0 0 13px; color:#4b7476; font-size:.77rem; }
+.priority-area { grid-template-columns:minmax(0,1fr); margin-top:0; }
+.priority-area .price-band { max-width:720px; }
+@media (max-width:760px) { .customer-actions { justify-content:flex-start; }.customer-library .panel-title { flex-direction:column; }.customer-actions .primary,.customer-actions .secondary { width:100%; justify-content:center; } }

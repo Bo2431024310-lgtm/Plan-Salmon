@@ -24,13 +24,15 @@
         <div class="source-actions"><label class="secondary upload-source"><input id="sourceFile" type="file" accept=".xlsx,.xls" />เลือกไฟล์ Excel</label><button class="primary" id="readSourceBtn" disabled>อ่านไฟล์และเริ่มวางแผน</button></div><small id="sourceStatus">ขั้นที่ 1: เลือกไฟล์ .xlsx หรือ .xls</small>
       </section>
 
+      <section class="panel customers-panel customer-library" aria-label="รายชื่อลูกค้าประจำ">
+        <div class="panel-title"><div><p class="eyebrow">01 / REGULAR CUSTOMERS</p><h2>ลูกค้าประจำ</h2><p class="muted">อัปโหลดไฟล์ SALMON CUSTOMER PLAN เพื่อดึงรายชื่อจากชีทแรก หรือเพิ่มรายชื่อลูกค้าใหม่ได้ทันที</p></div><div class="customer-actions"><label class="secondary upload-customer"><input id="customerSourceFile" type="file" accept=".xlsx,.xls" />อัปโหลด SALMON CUSTOMER PLAN</label><button class="secondary" id="readCustomerBtn" disabled>อ่านรายชื่อลูกค้า</button><button class="primary" id="addCustomerBtn">+ เพิ่มลูกค้า</button></div></div>
+        <p id="customerSourceStatus" class="import-status">ยังไม่ได้อ่านไฟล์ลูกค้า • รายชื่อที่เพิ่มจะเก็บไว้ในเครื่องนี้</p>
+        <div class="order-guide"><b>ช่วง 15–20</b> = จำนวนลัง • หากออเดอร์เป็น <b>ตัว</b> ระบบจะแปลง 4 ตัว = 1 ลัง</div>
+        <div class="table-wrap"><table id="customerTable"><thead><tr><th>รอบเข้า DC</th><th>ชื่อลูกค้า</th><th>หน่วย</th><th>Min</th><th>Max</th><th>ยืนยันแล้ว</th><th>ใช้วางแผน (ลัง)</th><th>กก.</th><th></th></tr></thead><tbody id="customerRows"></tbody></table></div>
+      </section>
+
       <div id="plannerContent" hidden>
       <section class="priority-area" aria-label="ข้อมูลที่ใช้วางแผน">
-        <section class="panel customers-panel">
-          <div class="panel-title"><div><p class="eyebrow">01 / CUSTOMER ORDERS</p><h2>ออเดอร์ลูกค้าประจำ</h2><p class="muted">กรอกออเดอร์ก่อน ระบบจะนำยอดไปคำนวณแผนเข้า DC ทันที</p></div><button class="secondary" id="addCustomerBtn">+ เพิ่มลูกค้า</button></div>
-          <div class="order-guide"><b>ช่วง 15–20</b> = จำนวนลัง • หากออเดอร์เป็น <b>ตัว</b> ระบบจะแปลง 4 ตัว = 1 ลัง</div>
-          <div class="table-wrap"><table id="customerTable"><thead><tr><th>รอบเข้า DC</th><th>ชื่อลูกค้า</th><th>หน่วย</th><th>Min</th><th>Max</th><th>ยืนยันแล้ว</th><th>ใช้วางแผน (ลัง)</th><th>กก.</th><th></th></tr></thead><tbody id="customerRows"></tbody></table></div>
-        </section>
         <section class="price-band panel" aria-label="ราคาสินค้าแซลมอน">
           <div class="panel-title price-panel-title"><div><p class="eyebrow">02 / SALMON PRICE</p><h2>ราคาปลาตามรอบ DC</h2></div><strong id="pricePeriodLabel">มีผล 25–31 Aug 2026</strong></div>
           <label class="upload-price"><span>แหล่งข้อมูล</span><small id="priceFileStatus">นำเข้าจาก Fresh Salmon TO DC แล้ว</small></label>

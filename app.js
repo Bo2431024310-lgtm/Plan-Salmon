@@ -23,6 +23,8 @@ const defaultState = {
 };
 let state = structuredClone(defaultState);
 let sourceReady = false;
+let selectedSourceFile = null;
+let selectedCustomerFile = null;
 
 function customerCartons(row) {
   const divisor = row.unit === "fish" ? 4 : 1;
@@ -71,12 +73,14 @@ function renderCustomers() {
     tr.querySelector(".customer-kg").textContent = decimal(customerCartons(row) * number(state.inputs.kgPerCarton));
     tr.querySelectorAll("input,select").forEach((element) => element.addEventListener("input", () => {
       state.customers[index] = { round: tr.querySelector(".customer-round").value, name: tr.querySelector(".customer-name").value, unit: tr.querySelector(".customer-unit").value, min: tr.querySelector(".customer-min").value, max: tr.querySelector(".customer-max").value, confirmed: tr.querySelector(".customer-confirmed").value };
+      persistState();
       update();
     }));
-    tr.querySelector(".delete-customer").addEventListener("click", () => { state.customers.splice(index, 1); update(); });
+    tr.querySelector(".delete-customer").addEventListener("click", () => { state.customers.splice(index, 1); persistState(); update(); });
     customerRows.append(fragment);
   });
 }
+function persistState() { localStorage.setItem("plan-salmon-salaya", JSON.stringify(state)); }
 function setSourceReady(ready) { sourceReady = ready; $("#sourceGate").hidden = ready; $("#plannerContent").hidden = !ready; }
 function thaiDate(value) {
   if (!value) return "—";
@@ -149,6 +153,26 @@ function sheetRowsFromXlsx(entries) {
   xmlNodes(sheetDocument, "c").forEach((cell) => { const reference = cell.getAttribute("r"); if (!reference) return; const rowNumber = Number(reference.match(/\d+/)[0]); const valueNode = childNode(cell, "v"); const inlineNode = childNode(cell, "is"); let value = inlineNode ? inlineNode.textContent : valueNode?.textContent || ""; if (cell.getAttribute("t") === "s") value = sharedStrings[Number(value)] || ""; if (!rows.has(rowNumber)) rows.set(rowNumber, []); rows.get(rowNumber)[columnIndex(reference)] = value; });
   return { sheetName: sheet.getAttribute("name"), rows: [...rows.entries()].sort((a, b) => a[0] - b[0]).map(([, row]) => row || []) };
 }
+function firstSheetRowsFromXlsx(entries) {
+  const parse = (content) => new DOMParser().parseFromString(content, "application/xml");
+  const workbook = parse(entries.get("xl/workbook.xml")); const relationships = parse(entries.get("xl/_rels/workbook.xml.rels"));
+  const relationMap = new Map(xmlNodes(relationships, "Relationship").map((node) => [node.getAttribute("Id"), node.getAttribute("Target")]));
+  const sheet = xmlNodes(workbook, "sheet")[0]; if (!sheet) throw new Error("ไม่พบชีทในไฟล์ลูกค้า");
+  const target = relationMap.get(relationshipId(sheet)); if (!target) throw new Error("ไม่พบข้อมูลชีทลูกค้า");
+  const parts = ["xl"]; target.split("/").forEach((part) => { if (part === "..") parts.pop(); else if (part !== ".") parts.push(part); });
+  const sheetDocument = parse(entries.get(parts.join("/"))); const stringsDocument = entries.get("xl/sharedStrings.xml") ? parse(entries.get("xl/sharedStrings.xml")) : null;
+  const sharedStrings = stringsDocument ? xmlNodes(stringsDocument, "si").map((node) => node.textContent || "") : []; const rows = new Map();
+  xmlNodes(sheetDocument, "c").forEach((cell) => { const reference = cell.getAttribute("r"); if (!reference) return; const rowNumber = Number(reference.match(/\d+/)[0]); const valueNode = childNode(cell, "v"); const inlineNode = childNode(cell, "is"); let value = inlineNode ? inlineNode.textContent : valueNode?.textContent || ""; if (cell.getAttribute("t") === "s") value = sharedStrings[Number(value)] || ""; if (!rows.has(rowNumber)) rows.set(rowNumber, []); rows.get(rowNumber)[columnIndex(reference)] = value; });
+  return { sheetName: sheet.getAttribute("name"), rows: [...rows.entries()].sort((a, b) => a[0] - b[0]).map(([, row]) => row || []) };
+}
+function extractCustomerNames({ sheetName, rows }) {
+  const headingIndex = rows.findIndex((row) => /ลูกค้าประจำ|ชื่อลูกค้า/i.test(String(row[0] || "")));
+  const start = headingIndex >= 0 ? headingIndex + 1 : 0;
+  const ignored = /^(salmon customer plan|กรอกข้อมูล|ใส่ชื่อลูกค้า|ลูกค้าประจำ)$/i;
+  const names = rows.slice(start).map((row) => String(row[0] || "").trim()).filter((name) => name && !ignored.test(name) && !/^①|^②/.test(name));
+  const uniqueNames = [...new Set(names)]; if (!uniqueNames.length) throw new Error("ไม่พบรายชื่อลูกค้าในคอลัมน์แรกของชีทแรก");
+  return { sheetName, names: uniqueNames };
+}
 function extractCatalog({ sheetName, rows }) {
   const headerIndex = rows.findIndex((row) => row.some((cell) => /item|sku|สินค้า/i.test(String(cell))) && row.some((cell) => /price|ราคา/i.test(String(cell))));
   const header = Array.from(rows[headerIndex >= 0 ? headerIndex : 0], (cell) => String(cell ?? "").toLowerCase());
@@ -183,9 +207,22 @@ async function importPriceFile(file) {
     gateStatus.textContent = error.message || "อ่านไฟล์ไม่สำเร็จ";
   }
 }
+async function importCustomerFile(file) {
+  const status = $("#customerSourceStatus");
+  try {
+    status.textContent = "กำลังอ่านรายชื่อลูกค้า…";
+    const imported = extractCustomerNames(firstSheetRowsFromXlsx(await unzipXlsx(file)));
+    const existing = new Set(state.customers.map((row) => String(row.name || "").trim().toLocaleLowerCase("th-TH")));
+    const additions = imported.names.filter((name) => !existing.has(name.toLocaleLowerCase("th-TH")));
+    additions.forEach((name) => state.customers.push({ round: "1", name, unit: "carton", min: 0, max: 0, confirmed: 0 }));
+    persistState(); renderCustomers();
+    status.textContent = `อ่าน ${imported.names.length} รายชื่อจากชีท ${imported.sheetName} • เพิ่มใหม่ ${additions.length} รายชื่อ`;
+    if (sourceReady) update();
+  } catch (error) { status.textContent = error.message || "อ่านไฟล์ลูกค้าไม่สำเร็จ"; }
+}
 function syncInputs() { applyProductPrice(); Object.entries(state.inputs).forEach(([key, value]) => { const el = $(`#${key}`); if (el && key !== "product") el.value = value; }); }
 function update() { applyProductPrice(); syncInputs(); renderPriceBand(); renderWeeklyPlan(); renderRounds(); renderCustomers(); }
-function save() { localStorage.setItem("plan-salmon-salaya", JSON.stringify(state)); $("#saveState").textContent = "บันทึกแล้ว"; setTimeout(() => { $("#saveState").textContent = ""; }, 1800); }
+function save() { persistState(); $("#saveState").textContent = "บันทึกแล้ว"; setTimeout(() => { $("#saveState").textContent = ""; }, 1800); }
 function downloadCsv() {
   const headers = ["รอบ", "วันเข้า DC", "Demand (ลัง)", "แนะนำเข้า (ลัง)", "กก.", "สต๊อกปลายรอบ"];
   const data = plannedData().map((row) => [`รอบ ${row.index}`, row.date, row.demand, row.recommended, row.kg, row.closing]);
@@ -202,8 +239,11 @@ function init() {
   document.addEventListener("change", updateInput);
   $("#etaDates").addEventListener("input", (event) => { state.inputs.etaDates = event.target.value; });
   $("#pricePeriod").addEventListener("input", (event) => { state.inputs.pricePeriod = event.target.value; update(); });
-  $("#sourceFile").addEventListener("change", (event) => { if (event.target.files[0]) importPriceFile(event.target.files[0]); });
-  $("#addCustomerBtn").addEventListener("click", () => { state.customers.push({ round: "1", name: "", unit: "carton", min: 0, max: 0, confirmed: 0 }); update(); });
+  $("#sourceFile").addEventListener("change", (event) => { selectedSourceFile = event.target.files[0] || null; $("#readSourceBtn").disabled = !selectedSourceFile; $("#sourceStatus").textContent = selectedSourceFile ? `ขั้นที่ 2: พร้อมอ่าน ${selectedSourceFile.name}` : "ขั้นที่ 1: เลือกไฟล์ .xlsx หรือ .xls"; });
+  $("#readSourceBtn").addEventListener("click", () => { if (selectedSourceFile) importPriceFile(selectedSourceFile); });
+  $("#customerSourceFile").addEventListener("change", (event) => { selectedCustomerFile = event.target.files[0] || null; $("#readCustomerBtn").disabled = !selectedCustomerFile; $("#customerSourceStatus").textContent = selectedCustomerFile ? `พร้อมอ่าน ${selectedCustomerFile.name}` : "ยังไม่ได้อ่านไฟล์ลูกค้า • รายชื่อที่เพิ่มจะเก็บไว้ในเครื่องนี้"; });
+  $("#readCustomerBtn").addEventListener("click", () => { if (selectedCustomerFile) importCustomerFile(selectedCustomerFile); });
+  $("#addCustomerBtn").addEventListener("click", () => { state.customers.push({ round: "1", name: "", unit: "carton", min: 0, max: 0, confirmed: 0 }); persistState(); update(); });
   $("#saveBtn").addEventListener("click", save); $("#exportBtn").addEventListener("click", downloadCsv); $("#printBtn").addEventListener("click", () => window.print());
   $("#resetBtn").addEventListener("click", () => { if (confirm("เริ่มแผนใหม่และล้างข้อมูลที่บันทึกไว้หรือไม่?")) { localStorage.removeItem("plan-salmon-salaya"); state = structuredClone(defaultState); renderProducts(); syncInputs(); setSourceReady(false); } });
   update();
