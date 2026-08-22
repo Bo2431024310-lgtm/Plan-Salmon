@@ -32,13 +32,22 @@
           <div class="form-grid">
             <label>สาขา<input id="branch" value="SALAYA" /></label>
             <label>DC<input id="dc" type="number" value="953" /></label>
-            <label>SKU หลัก<input id="sku" type="number" value="129101" /></label>
-            <label>ราคา / กก. (บาท)<input id="price" type="number" value="369" min="0" /></label>
+            <label>สินค้า<select id="product"><option value="salmon56">Fresh Salmon 5–6 กก./ตัว</option><option value="salmon45">Fresh Salmon 4–5 กก./ตัว</option></select></label>
+            <label>SKU หลัก<input id="sku" type="number" value="129101" readonly /></label>
+            <label>ระดับราคา<select id="priceTier"><option value="single">1 ลัง</option><option value="ten">10 ลัง</option><option value="standard">ราคาปกติ</option></select></label>
+            <label>ราคา / กก. (บาท)<input id="price" type="number" value="380" min="0" readonly /></label>
             <label>สต๊อกต้นงวด (ลัง)<input id="openingStock" type="number" value="0" min="0" step="0.5" /></label>
             <label>Safety stock (ลัง)<input id="safetyStock" type="number" value="5" min="0" step="0.5" /></label>
             <label>ใช้ยอดลูกค้าช่วง<select id="planMode"><option value="mid">ค่ากลางของช่วง</option><option value="high">ค่าสูงเพื่อเผื่อของ</option></select></label>
             <label>น้ำหนัก / ลัง<input id="kgPerCarton" type="number" value="22" min="1" step="0.1" /></label>
           </div>
+          <section class="price-band" aria-label="ราคาสินค้าแซลมอน">
+            <div class="price-band-title"><span>ราคา Salmon ตามรอบ DC</span><strong id="pricePeriodLabel">มีผล 25–31 Aug 2026</strong></div>
+            <label class="upload-price"><input id="priceFile" type="file" accept=".xlsx,.xls" /><span>อัปโหลด Excel ราคาสินค้า</span><small id="priceFileStatus">ใช้ราคาตั้งต้น • เลือกไฟล์เพื่ออัปเดต</small></label>
+            <label class="date-field">ETA DC<input id="etaDates" value="24, 26, 28 Aug 2026" /></label>
+            <label class="date-field">ช่วงราคามีผล<input id="pricePeriod" value="25–31 Aug 2026" /></label>
+            <table class="price-table"><thead><tr><th>สินค้า</th><th>ปกติ</th><th>1 ลัง</th><th>10 ลัง</th></tr></thead><tbody id="priceRows"></tbody></table>
+          </section>
           <div class="hint"><b>วิธีคิด:</b> ยอดหน้าร้านต้องไม่รวมออเดอร์ลูกค้าประจำ เพื่อป้องกันการนับยอดซ้ำ</div>
         </aside>
 
