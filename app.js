@@ -22,6 +22,7 @@ const defaultState = {
   customers: [],
 };
 let state = structuredClone(defaultState);
+let sourceReady = false;
 
 function customerCartons(row) {
   const divisor = row.unit === "fish" ? 4 : 1;
@@ -76,17 +77,7 @@ function renderCustomers() {
     customerRows.append(fragment);
   });
 }
-function renderKpis() {
-  const rows = plannedData();
-  const cartons = rows.reduce((sum, row) => sum + row.recommended, 0);
-  const kg = rows.reduce((sum, row) => sum + row.kg, 0);
-  const value = kg * number(state.inputs.price);
-  const closing = rows.at(-1)?.closing || number(state.inputs.openingStock);
-  $("#totalCartons").textContent = decimal(cartons); $("#totalKg").textContent = decimal(kg); $("#totalValue").textContent = money(value); $("#endStock").textContent = decimal(closing);
-  const status = closing >= number(state.inputs.safetyStock) ? "อยู่ในระดับปลอดภัย" : "ต่ำกว่า Safety stock";
-  $("#stockStatus").textContent = status;
-  $(".status-card").style.borderLeftColor = closing >= number(state.inputs.safetyStock) ? "#4d9a58" : "#d65e50";
-}
+function setSourceReady(ready) { sourceReady = ready; $("#sourceGate").hidden = ready; $("#plannerContent").hidden = !ready; }
 function thaiDate(value) {
   if (!value) return "—";
   return new Intl.DateTimeFormat("th-TH", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(`${value}T00:00:00`));
@@ -174,23 +165,26 @@ function extractCatalog({ sheetName, rows }) {
   return { sheetName, catalog };
 }
 async function importPriceFile(file) {
-  const status = $("#priceFileStatus");
+  const status = $("#priceFileStatus"); const gateStatus = $("#sourceStatus");
   try {
-    status.textContent = "กำลังอ่านไฟล์…";
+    status.textContent = "กำลังอ่านไฟล์…"; gateStatus.textContent = "กำลังอ่านไฟล์…";
     const imported = extractCatalog(sheetRowsFromXlsx(await unzipXlsx(file)));
     state.priceCatalog = imported.catalog;
     const salmon56 = imported.catalog.find((item) => String(item.sku) === "129101");
     state.inputs.product = (salmon56 || imported.catalog[0]).id;
     state.inputs.priceTier = "standard";
     status.textContent = `อัปเดต ${imported.catalog.length} รายการจากชีต ${imported.sheetName}`;
+    gateStatus.textContent = `อ่านสำเร็จ ${imported.catalog.length} รายการ • กำลังเปิดหน้าแผน`;
     renderProducts();
+    setSourceReady(true);
     update();
   } catch (error) {
     status.textContent = error.message || "อ่านไฟล์ไม่สำเร็จ";
+    gateStatus.textContent = error.message || "อ่านไฟล์ไม่สำเร็จ";
   }
 }
 function syncInputs() { applyProductPrice(); Object.entries(state.inputs).forEach(([key, value]) => { const el = $(`#${key}`); if (el && key !== "product") el.value = value; }); }
-function update() { applyProductPrice(); syncInputs(); renderPriceBand(); renderKpis(); renderWeeklyPlan(); renderRounds(); renderCustomers(); }
+function update() { applyProductPrice(); syncInputs(); renderPriceBand(); renderWeeklyPlan(); renderRounds(); renderCustomers(); }
 function save() { localStorage.setItem("plan-salmon-salaya", JSON.stringify(state)); $("#saveState").textContent = "บันทึกแล้ว"; setTimeout(() => { $("#saveState").textContent = ""; }, 1800); }
 function downloadCsv() {
   const headers = ["รอบ", "วันเข้า DC", "Demand (ลัง)", "แนะนำเข้า (ลัง)", "กก.", "สต๊อกปลายรอบ"];
@@ -202,15 +196,16 @@ function init() {
   const saved = localStorage.getItem("plan-salmon-salaya"); if (saved) { const stored = JSON.parse(saved); state = { ...defaultState, ...stored, inputs: { ...defaultState.inputs, ...stored.inputs }, priceCatalog: stored.priceCatalog || defaultCatalog, rounds: stored.rounds || defaultState.rounds, customers: stored.customers || [] }; }
   renderProducts();
   syncInputs();
+  setSourceReady(false);
   const updateInput = (event) => { if (event.target.matches(".form-grid input,.form-grid select")) { state.inputs[event.target.id] = event.target.value; update(); } };
   document.addEventListener("input", updateInput);
   document.addEventListener("change", updateInput);
   $("#etaDates").addEventListener("input", (event) => { state.inputs.etaDates = event.target.value; });
   $("#pricePeriod").addEventListener("input", (event) => { state.inputs.pricePeriod = event.target.value; update(); });
-  $("#priceFile").addEventListener("change", (event) => { if (event.target.files[0]) importPriceFile(event.target.files[0]); });
+  $("#sourceFile").addEventListener("change", (event) => { if (event.target.files[0]) importPriceFile(event.target.files[0]); });
   $("#addCustomerBtn").addEventListener("click", () => { state.customers.push({ round: "1", name: "", unit: "carton", min: 0, max: 0, confirmed: 0 }); update(); });
   $("#saveBtn").addEventListener("click", save); $("#exportBtn").addEventListener("click", downloadCsv); $("#printBtn").addEventListener("click", () => window.print());
-  $("#resetBtn").addEventListener("click", () => { if (confirm("เริ่มแผนใหม่และล้างข้อมูลที่บันทึกไว้หรือไม่?")) { localStorage.removeItem("plan-salmon-salaya"); state = structuredClone(defaultState); syncInputs(); update(); } });
+  $("#resetBtn").addEventListener("click", () => { if (confirm("เริ่มแผนใหม่และล้างข้อมูลที่บันทึกไว้หรือไม่?")) { localStorage.removeItem("plan-salmon-salaya"); state = structuredClone(defaultState); renderProducts(); syncInputs(); setSourceReady(false); } });
   update();
 }
 init();
