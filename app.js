@@ -87,6 +87,19 @@ function renderKpis() {
   $("#stockStatus").textContent = status;
   $(".status-card").style.borderLeftColor = closing >= number(state.inputs.safetyStock) ? "#4d9a58" : "#d65e50";
 }
+function thaiDate(value) {
+  if (!value) return "—";
+  return new Intl.DateTimeFormat("th-TH", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(`${value}T00:00:00`));
+}
+function renderWeeklyPlan() {
+  const rows = plannedData(); const product = state.priceCatalog.find((item) => item.id === state.inputs.product) || state.priceCatalog[0];
+  const cartons = rows.reduce((sum, row) => sum + row.recommended, 0); const kg = rows.reduce((sum, row) => sum + row.kg, 0); const value = kg * number(state.inputs.price);
+  $("#weeklyDates").textContent = rows.map((row) => thaiDate(row.date)).join(" • ");
+  $("#weeklyPricePeriod").textContent = `ราคาอ้างอิงมีผล ${state.inputs.pricePeriod}`;
+  $("#weeklyProduct").textContent = product?.description || "—"; $("#weeklySku").textContent = state.inputs.sku; $("#weeklyPrice").textContent = money(state.inputs.price);
+  $("#weeklyCartons").textContent = `${decimal(cartons)} ลัง`; $("#weeklyKg").textContent = `${decimal(kg)} กก.`; $("#weeklyValue").textContent = money(value);
+  $("#weeklyRounds").innerHTML = rows.map((row) => `<article class="weekly-round"><span class="round-label">รอบเข้า DC ${row.index}</span><span class="date">${thaiDate(row.date)} • ครอบคลุม ${decimal(row.days)} วัน</span><div class="numbers"><strong>${decimal(row.recommended)}</strong><span>ลังแนะนำเข้า<br>${decimal(row.kg)} กก.</span></div><div class="details"><span>Demand ${decimal(row.demand)} ลัง</span><span>ปลายรอบ ${decimal(row.closing)} ลัง</span></div></article>`).join("");
+}
 function applyProductPrice() {
   const product = state.priceCatalog.find((item) => item.id === state.inputs.product) || state.priceCatalog[0];
   if (!product) return;
@@ -177,7 +190,7 @@ async function importPriceFile(file) {
   }
 }
 function syncInputs() { applyProductPrice(); Object.entries(state.inputs).forEach(([key, value]) => { const el = $(`#${key}`); if (el && key !== "product") el.value = value; }); }
-function update() { applyProductPrice(); syncInputs(); renderPriceBand(); renderKpis(); renderRounds(); renderCustomers(); }
+function update() { applyProductPrice(); syncInputs(); renderPriceBand(); renderKpis(); renderWeeklyPlan(); renderRounds(); renderCustomers(); }
 function save() { localStorage.setItem("plan-salmon-salaya", JSON.stringify(state)); $("#saveState").textContent = "บันทึกแล้ว"; setTimeout(() => { $("#saveState").textContent = ""; }, 1800); }
 function downloadCsv() {
   const headers = ["รอบ", "วันเข้า DC", "Demand (ลัง)", "แนะนำเข้า (ลัง)", "กก.", "สต๊อกปลายรอบ"];
