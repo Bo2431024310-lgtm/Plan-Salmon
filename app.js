@@ -13,15 +13,15 @@ const repeatWeek = (days) => Array.from({ length: 4 }, () => [...days]).flat();
 const defaultCustomerPlans = [
   { name: "พี่เชอร์รี่ ตลาดชลบุรี แซลมอนแคท", schedule: repeatWeek([10, 10, 10, 10, 15, 20, 20]) },
   { name: "อูมามิ", schedule: repeatWeek(["", "15-20", "", "", "15-20", "", ""]) },
-  { name: "ซูชิไข่หวานสามพราน", schedule: repeatWeek(["5ตัว", "5ตัว", "5ตัว", "5ตัว", "5ตัว", "5ตัว", "5ตัว"]) },
-  { name: "ไฟท์โตะ", schedule: repeatWeek(["10ตัว", "10ตัว", "10ตัว", "10ตัว", "10ตัว", "10ตัว", "10ตัว"]) },
-  { name: "นินจามีสามสาขา", schedule: repeatWeek(["5-6ตัว", "5-6ตัว", "5-6ตัว", "5-6ตัว", "5-6ตัว", "5-6ตัว", "5-6ตัว"]) },
-  { name: "มาตาเนะนครชัยศรี", schedule: repeatWeek(["6ตัว", "", "6ตัว", "", "6ตัว", "", "6ตัว"]) },
+  { name: "ซูชิไข่หวานสามพราน", unit: "fish", schedule: repeatWeek([5, 5, 5, 5, 5, 5, 5]) },
+  { name: "ไฟท์โตะ", unit: "fish", schedule: repeatWeek([10, 10, 10, 10, 10, 10, 10]) },
+  { name: "นินจามีสามสาขา", unit: "fish", schedule: repeatWeek([5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5]) },
+  { name: "มาตาเนะนครชัยศรี", unit: "fish", schedule: repeatWeek([6, "", 6, "", 6, "", 6]) },
   { name: "ทะเลดอง", schedule: repeatWeek([2, 2, 2, 2, 2, 2, 2]) },
   { name: "พี่เมย์ซีฟู๊ด", schedule: repeatWeek([5, "", "", 5, "", "", 5]) },
-  { name: "แหม่มสลัด", schedule: repeatWeek(["2ตัว", "2ตัว", "2ตัว", "2ตัว", "2ตัว", "2ตัว", "2ตัว"]) },
-  { name: "ไข่หวานพอสสิจูด", schedule: repeatWeek(["1ตัว", "1ตัว", "1ตัว", "1ตัว", "1ตัว", "1ตัว", "1ตัว"]) },
-  { name: "โคฟูกุ", schedule: repeatWeek(["2-4ตัว", "2-4ตัว", "2-4ตัว", "2-4ตัว", "2-4ตัว", "2-4ตัว", "2-4ตัว"]) },
+  { name: "แหม่มสลัด", unit: "fish", schedule: repeatWeek([2, 2, 2, 2, 2, 2, 2]) },
+  { name: "ไข่หวานพอสสิจูด", unit: "fish", schedule: repeatWeek([1, 1, 1, 1, 1, 1, 1]) },
+  { name: "โคฟูกุ", unit: "fish", schedule: repeatWeek([3, 3, 3, 3, 3, 3, 3]) },
 ];
 const defaultState = {
   inputs: { branch: "SALAYA", dc: 953, product: "salmon56", sku: 129101, priceTier: "single", price: 380, openingStock: 0, safetyStock: 5, planMode: "mid", kgPerCarton: 22, etaDates: "24, 26, 28 Aug 2026", pricePeriod: "25–31 Aug 2026" },
@@ -46,27 +46,27 @@ function customerCartons(row) {
   const min = number(row.min); const max = number(row.max);
   return (state.inputs.planMode === "high" ? max : (min + max) / 2) / divisor;
 }
-function orderToUnits(value) {
+function orderToUnits(value, unit = "") {
   const raw = String(value ?? "").trim(); if (!raw) return 0;
   const values = (raw.match(/\d+(?:\.\d+)?/g) || []).map(Number); if (!values.length) return 0;
   const average = values.reduce((sum, item) => sum + item, 0) / values.length;
-  return /ตัว/.test(raw) ? { cartons: 0, fish: average } : { cartons: average, fish: 0 };
+  return unit === "fish" || /ตัว/.test(raw) ? { cartons: 0, fish: average } : { cartons: average, fish: 0 };
 }
-function orderToCartons(value) {
-  const units = orderToUnits(value); return units ? units.cartons + units.fish / 4 : 0;
+function orderToCartons(value, unit = "") {
+  const units = orderToUnits(value, unit); return units ? units.cartons + units.fish / 4 : 0;
 }
-function addUnits(total, value) {
-  const units = orderToUnits(value); if (!units) return total;
+function addUnits(total, value, unit = "") {
+  const units = orderToUnits(value, unit); if (!units) return total;
   return { cartons: total.cartons + units.cartons, fish: total.fish + units.fish };
 }
 function customerWeekTotals() {
-  return Array.from({ length: 4 }, (_, week) => state.customerPlans.reduce((total, customer) => customer.schedule.slice(week * 7, week * 7 + 7).reduce(addUnits, total), { cartons: 0, fish: 0 }));
+  return Array.from({ length: 4 }, (_, week) => state.customerPlans.reduce((total, customer) => customer.schedule.slice(week * 7, week * 7 + 7).reduce((sum, value) => addUnits(sum, value, customer.unit), total), { cartons: 0, fish: 0 }));
 }
 function regularCustomerDemand(round) {
   const firstDate = new Date(`${state.rounds[0]?.date || "2026-08-31"}T00:00:00`); const monday = new Date(firstDate);
   monday.setDate(firstDate.getDate() - ((firstDate.getDay() + 6) % 7));
   const arrival = new Date(`${round.date}T00:00:00`); const start = Math.round((arrival - monday) / 86400000);
-  return Array.from({ length: number(round.days) }, (_, day) => state.customerPlans.reduce((sum, customer) => sum + orderToCartons(customer.schedule[start + day]), 0)).reduce((sum, value) => sum + value, 0);
+  return Array.from({ length: number(round.days) }, (_, day) => state.customerPlans.reduce((sum, customer) => sum + orderToCartons(customer.schedule[start + day], customer.unit), 0)).reduce((sum, value) => sum + value, 0);
 }
 function plannedData() {
   let stock = number(state.inputs.openingStock);
@@ -104,13 +104,13 @@ function renderCustomers() {
     const label = type === "carton" ? "ลัง" : "ตัว"; const customers = state.customerPlans.map((customer, index) => ({ customer, index })).filter(({ customer }) => customerUnit(customer) === type);
     $(headId).innerHTML = header(label);
     $(rowsId).innerHTML = customers.map(({ customer, index }) => {
-    const weekly = Array.from({ length: 4 }, (_, week) => customer.schedule.slice(week * 7, week * 7 + 7).reduce(addUnits, { cartons: 0, fish: 0 }));
-    const days = Array.from({ length: 4 }, (_, week) => `${Array.from({ length: 7 }, (_, day) => { const indexDay = week * 7 + day; return `<td><input class="customer-day" data-customer="${index}" data-day="${indexDay}" value="${escapeHtml(customer.schedule[indexDay] ?? "")}" aria-label="${escapeHtml(customer.name || "ลูกค้าใหม่")} วันที่ ${indexDay + 1}" /></td>`; }).join("")}<td class="week-column-total">${decimal(type === "carton" ? weekly[week].cartons : weekly[week].fish)}</td>`).join("");
+    const weekly = Array.from({ length: 4 }, (_, week) => customer.schedule.slice(week * 7, week * 7 + 7).reduce((sum, value) => addUnits(sum, value, customer.unit), { cartons: 0, fish: 0 }));
+    const days = Array.from({ length: 4 }, (_, week) => `${Array.from({ length: 7 }, (_, day) => { const indexDay = week * 7 + day; const value = customer.schedule[indexDay] ?? ""; const displayValue = type === "fish" ? orderToUnits(value, "fish")?.fish ?? "" : value; return `<td><input class="customer-day" ${type === "fish" ? 'type="number" min="0" step="0.1"' : ""} data-customer="${index}" data-day="${indexDay}" value="${escapeHtml(displayValue)}" aria-label="${escapeHtml(customer.name || "ลูกค้าใหม่")} วันที่ ${indexDay + 1}" /></td>`; }).join("")}<td class="week-column-total">${decimal(type === "carton" ? weekly[week].cartons : weekly[week].fish)}</td>`).join("");
     const total = weekly.reduce((sum, value) => ({ cartons: sum.cartons + value.cartons, fish: sum.fish + value.fish }), { cartons: 0, fish: 0 });
       const value = type === "carton" ? total.cartons : total.fish;
       return `<tr><td class="customer-name"><input class="customer-name-input" data-customer-name="${index}" value="${escapeHtml(customer.name)}" placeholder="ชื่อลูกค้าใหม่" /></td>${days}<td class="customer-total"><b>${decimal(value)} ${label}</b></td><td><button class="icon-button delete-customer" data-delete-customer="${index}" aria-label="ลบลูกค้า">×</button></td></tr>`;
     }).join("");
-    const groupTotal = customers.reduce((sum, { customer }) => sum + customer.schedule.reduce((daily, value) => daily + (type === "carton" ? orderToUnits(value)?.cartons || 0 : orderToUnits(value)?.fish || 0), 0), 0);
+    const groupTotal = customers.reduce((sum, { customer }) => sum + customer.schedule.reduce((daily, value) => daily + (type === "carton" ? orderToUnits(value, customer.unit)?.cartons || 0 : orderToUnits(value, customer.unit)?.fish || 0), 0), 0);
     $(totalId).textContent = `รวม 4 สัปดาห์ ${decimal(groupTotal)} ${label}`;
   };
   renderGroup("carton", "#customerCartonHead", "#customerCartonRows", "#cartonGroupTotal");
@@ -273,6 +273,11 @@ function downloadCsv() {
 }
 function init() {
   const saved = localStorage.getItem("plan-salmon-salaya"); if (saved) { const stored = JSON.parse(saved); state = { ...defaultState, ...stored, inputs: { ...defaultState.inputs, ...stored.inputs }, priceCatalog: stored.priceCatalog || defaultCatalog, rounds: stored.rounds || defaultState.rounds, customers: stored.customers || [], customerPlans: stored.customerPlans || defaultCustomerPlans }; }
+  state.customerPlans.forEach((customer) => {
+    if (!customer.unit) customer.unit = customer.schedule.some((value) => /ตัว/.test(String(value))) ? "fish" : "carton";
+    if (customer.unit === "fish") customer.schedule = customer.schedule.map((value) => { const units = orderToUnits(value, "fish"); return units ? String(units.fish) : ""; });
+  });
+  persistState();
   renderProducts();
   syncInputs();
   setSourceReady(false);
