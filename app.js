@@ -1,8 +1,6 @@
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 const roundRows = $("#roundRows");
-const customerRows = $("#customerRows");
-const template = $("#customerTemplate");
 const number = (value) => Math.max(0, Number(value) || 0);
 const decimal = (value) => new Intl.NumberFormat("th-TH", { maximumFractionDigits: 1 }).format(value);
 const money = (value) => new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB", maximumFractionDigits: 0 }).format(value);
@@ -101,13 +99,13 @@ function renderCustomers() {
     if (customer.unit) return customer.unit;
     return customer.schedule.some((value) => /ตัว/.test(String(value))) ? "fish" : "carton";
   };
-  const header = (unit) => `<tr><th rowspan="2" class="customer-name-head">ลูกค้าประจำ</th>${[1, 2, 3, 4].map((week) => `<th colspan="7" class="week-head week-${week}">สัปดาห์ที่ ${week}</th>`).join("")}<th rowspan="2">รวม 4 สัปดาห์<br>(${unit})</th><th rowspan="2"></th></tr><tr>${Array.from({ length: 4 }, () => dayNames.map((day) => `<th>${day}</th>`).join("")).join("")}</tr>`;
+  const header = (unit) => `<tr><th rowspan="2" class="customer-name-head">ลูกค้าประจำ</th>${[1, 2, 3, 4].map((week) => `<th colspan="8" class="week-head week-${week}">สัปดาห์ที่ ${week}</th>`).join("")}<th rowspan="2">รวม 4 สัปดาห์<br>(${unit})</th><th rowspan="2"></th></tr><tr>${Array.from({ length: 4 }, () => `${dayNames.map((day) => `<th>${day}</th>`).join("")}<th class="week-column-total">รวม</th>`).join("")}</tr>`;
   const renderGroup = (type, headId, rowsId, totalId) => {
     const label = type === "carton" ? "ลัง" : "ตัว"; const customers = state.customerPlans.map((customer, index) => ({ customer, index })).filter(({ customer }) => customerUnit(customer) === type);
     $(headId).innerHTML = header(label);
     $(rowsId).innerHTML = customers.map(({ customer, index }) => {
     const weekly = Array.from({ length: 4 }, (_, week) => customer.schedule.slice(week * 7, week * 7 + 7).reduce(addUnits, { cartons: 0, fish: 0 }));
-    const days = Array.from({ length: 28 }, (_, day) => `<td><input class="customer-day" data-customer="${index}" data-day="${day}" value="${escapeHtml(customer.schedule[day] ?? "")}" aria-label="${escapeHtml(customer.name || "ลูกค้าใหม่")} วันที่ ${day + 1}" /></td>`).join("");
+    const days = Array.from({ length: 4 }, (_, week) => `${Array.from({ length: 7 }, (_, day) => { const indexDay = week * 7 + day; return `<td><input class="customer-day" data-customer="${index}" data-day="${indexDay}" value="${escapeHtml(customer.schedule[indexDay] ?? "")}" aria-label="${escapeHtml(customer.name || "ลูกค้าใหม่")} วันที่ ${indexDay + 1}" /></td>`; }).join("")}<td class="week-column-total">${decimal(type === "carton" ? weekly[week].cartons : weekly[week].fish)}</td>`).join("");
     const total = weekly.reduce((sum, value) => ({ cartons: sum.cartons + value.cartons, fish: sum.fish + value.fish }), { cartons: 0, fish: 0 });
       const value = type === "carton" ? total.cartons : total.fish;
       return `<tr><td class="customer-name"><input class="customer-name-input" data-customer-name="${index}" value="${escapeHtml(customer.name)}" placeholder="ชื่อลูกค้าใหม่" /></td>${days}<td class="customer-total"><b>${decimal(value)} ${label}</b></td><td><button class="icon-button delete-customer" data-delete-customer="${index}" aria-label="ลบลูกค้า">×</button></td></tr>`;
@@ -285,8 +283,6 @@ function init() {
   $("#pricePeriod").addEventListener("input", (event) => { state.inputs.pricePeriod = event.target.value; update(); });
   $("#sourceFile").addEventListener("change", (event) => { selectedSourceFile = event.target.files[0] || null; $("#readSourceBtn").disabled = !selectedSourceFile; $("#sourceStatus").textContent = selectedSourceFile ? `ขั้นที่ 2: พร้อมอ่าน ${selectedSourceFile.name}` : "ขั้นที่ 1: เลือกไฟล์ .xlsx หรือ .xls"; });
   $("#readSourceBtn").addEventListener("click", () => { if (selectedSourceFile) importPriceFile(selectedSourceFile); });
-  $("#customerSourceFile").addEventListener("change", (event) => { selectedCustomerFile = event.target.files[0] || null; $("#readCustomerBtn").disabled = !selectedCustomerFile; $("#customerSourceStatus").textContent = selectedCustomerFile ? `พร้อมอ่าน ${selectedCustomerFile.name}` : "รายชื่อลูกค้าและแผน 4 สัปดาห์ถูกบันทึกไว้ในเครื่องนี้"; });
-  $("#readCustomerBtn").addEventListener("click", () => { if (selectedCustomerFile) importCustomerFile(selectedCustomerFile); });
   $("#addCartonCustomerBtn").addEventListener("click", () => { state.customerPlans.push({ name: "", unit: "carton", schedule: Array(28).fill("") }); persistState(); update(); });
   $("#addFishCustomerBtn").addEventListener("click", () => { state.customerPlans.push({ name: "", unit: "fish", schedule: Array(28).fill("") }); persistState(); update(); });
   $("#saveBtn").addEventListener("click", save); $("#exportBtn").addEventListener("click", downloadCsv); $("#printBtn").addEventListener("click", () => window.print());
