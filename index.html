@@ -19,16 +19,17 @@
         <div class="rule-card"><span>มาตรฐานสินค้า</span><strong>1 ลัง = <b>22</b> กก.</strong><small>เทียบเท่า 4 ตัว • ปลาเฉลี่ย 5–6 กก./ตัว</small></div>
       </section>
 
-      <section class="source-gate" id="sourceGate">
-        <div class="source-icon">↑</div><div><p class="eyebrow">เริ่มต้นสร้างแผน</p><h2>อัปโหลดไฟล์ Fresh Salmon TO DC ก่อน</h2><p>ระบบจะอ่านชีต <b>“ราคาสินค้า”</b> เพื่อเลือกสินค้าและราคาที่ใช้ในใบแพลน</p></div>
-        <div class="source-actions"><label class="secondary upload-source"><input id="sourceFile" type="file" accept=".xlsx,.xls" />เลือกไฟล์ Excel</label><button class="primary" id="readSourceBtn" disabled>อ่านไฟล์และเริ่มวางแผน</button></div><small id="sourceStatus">ขั้นที่ 1: เลือกไฟล์ .xlsx หรือ .xls</small>
+      <section class="panel customers-panel customer-library" aria-label="รายชื่อลูกค้าประจำ">
+        <div class="panel-title customer-sticky"><div><p class="eyebrow">01 / REGULAR CUSTOMERS</p><h2>ลูกค้าประจำ — แพลน 4 สัปดาห์</h2><p class="muted">กรอกเป็นลัง หรือเติมคำว่า “ตัว” เช่น 5ตัว / 5-6ตัว ระบบแปลงเป็นลังและรวมรายสัปดาห์ให้ทันที</p></div><div class="customer-actions"><label class="secondary upload-customer"><input id="customerSourceFile" type="file" accept=".xlsx,.xls" />อัปโหลด SALMON CUSTOMER PLAN</label><button class="secondary" id="readCustomerBtn" disabled>อ่านตารางลูกค้า</button><button class="primary" id="addCustomerBtn">+ เพิ่มลูกค้า</button></div></div>
+        <p id="customerSourceStatus" class="import-status">รายชื่อลูกค้าและแผน 4 สัปดาห์ถูกบันทึกไว้ในเครื่องนี้</p>
+        <div class="customer-week-summary" id="customerWeekSummary"></div>
+        <div class="order-guide"><b>15–20</b> = ช่วงจำนวนลัง • <b>5ตัว</b> = 1.25 ลัง • <b>5-6ตัว</b> = ค่ากลาง 1.375 ลัง</div>
+        <div class="table-wrap customer-table-wrap"><table id="customerTable"><thead id="customerHead"></thead><tbody id="customerRows"></tbody></table></div>
       </section>
 
-      <section class="panel customers-panel customer-library" aria-label="รายชื่อลูกค้าประจำ">
-        <div class="panel-title"><div><p class="eyebrow">01 / REGULAR CUSTOMERS</p><h2>ลูกค้าประจำ</h2><p class="muted">อัปโหลดไฟล์ SALMON CUSTOMER PLAN เพื่อดึงรายชื่อจากชีทแรก หรือเพิ่มรายชื่อลูกค้าใหม่ได้ทันที</p></div><div class="customer-actions"><label class="secondary upload-customer"><input id="customerSourceFile" type="file" accept=".xlsx,.xls" />อัปโหลด SALMON CUSTOMER PLAN</label><button class="secondary" id="readCustomerBtn" disabled>อ่านรายชื่อลูกค้า</button><button class="primary" id="addCustomerBtn">+ เพิ่มลูกค้า</button></div></div>
-        <p id="customerSourceStatus" class="import-status">ยังไม่ได้อ่านไฟล์ลูกค้า • รายชื่อที่เพิ่มจะเก็บไว้ในเครื่องนี้</p>
-        <div class="order-guide"><b>ช่วง 15–20</b> = จำนวนลัง • หากออเดอร์เป็น <b>ตัว</b> ระบบจะแปลง 4 ตัว = 1 ลัง</div>
-        <div class="table-wrap"><table id="customerTable"><thead><tr><th>รอบเข้า DC</th><th>ชื่อลูกค้า</th><th>หน่วย</th><th>Min</th><th>Max</th><th>ยืนยันแล้ว</th><th>ใช้วางแผน (ลัง)</th><th>กก.</th><th></th></tr></thead><tbody id="customerRows"></tbody></table></div>
+      <section class="source-gate" id="sourceGate">
+        <div class="source-icon">↑</div><div><p class="eyebrow">02 / เริ่มต้นสร้างแผน</p><h2>อัปโหลดไฟล์ Fresh Salmon TO DC ก่อน</h2><p>ระบบจะอ่านชีต <b>“ราคาสินค้า”</b> เพื่อเลือกสินค้าและราคาที่ใช้ในใบแพลน</p></div>
+        <div class="source-actions"><label class="secondary upload-source"><input id="sourceFile" type="file" accept=".xlsx,.xls" />เลือกไฟล์ Excel</label><button class="primary" id="readSourceBtn" disabled>อ่านไฟล์และเริ่มวางแผน</button></div><small id="sourceStatus">ขั้นที่ 1: เลือกไฟล์ .xlsx หรือ .xls</small>
       </section>
 
       <div id="plannerContent" hidden>

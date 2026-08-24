@@ -11,6 +11,20 @@ const defaultCatalog = [
   { id: "salmon45", sku: 811675, description: "Fresh Salmon 4–5 kg", standard: 370, single: 365, ten: 360 },
   { id: "salmon56", sku: 129101, description: "Fresh Salmon 5–6 kg", standard: 385, single: 380, ten: 375 },
 ];
+const repeatWeek = (days) => Array.from({ length: 4 }, () => [...days]).flat();
+const defaultCustomerPlans = [
+  { name: "พี่เชอร์รี่ ตลาดชลบุรี แซลมอนแคท", schedule: repeatWeek([10, 10, 10, 10, 15, 20, 20]) },
+  { name: "อูมามิ", schedule: repeatWeek(["", "15-20", "", "", "15-20", "", ""]) },
+  { name: "ซูชิไข่หวานสามพราน", schedule: repeatWeek(["5ตัว", "5ตัว", "5ตัว", "5ตัว", "5ตัว", "5ตัว", "5ตัว"]) },
+  { name: "ไฟท์โตะ", schedule: repeatWeek(["10ตัว", "10ตัว", "10ตัว", "10ตัว", "10ตัว", "10ตัว", "10ตัว"]) },
+  { name: "นินจามีสามสาขา", schedule: repeatWeek(["5-6ตัว", "5-6ตัว", "5-6ตัว", "5-6ตัว", "5-6ตัว", "5-6ตัว", "5-6ตัว"]) },
+  { name: "มาตาเนะนครชัยศรี", schedule: repeatWeek(["6ตัว", "", "6ตัว", "", "6ตัว", "", "6ตัว"]) },
+  { name: "ทะเลดอง", schedule: repeatWeek([2, 2, 2, 2, 2, 2, 2]) },
+  { name: "พี่เมย์ซีฟู๊ด", schedule: repeatWeek([5, "", "", 5, "", "", 5]) },
+  { name: "แหม่มสลัด", schedule: repeatWeek(["2ตัว", "2ตัว", "2ตัว", "2ตัว", "2ตัว", "2ตัว", "2ตัว"]) },
+  { name: "ไข่หวานพอสสิจูด", schedule: repeatWeek(["1ตัว", "1ตัว", "1ตัว", "1ตัว", "1ตัว", "1ตัว", "1ตัว"]) },
+  { name: "โคฟูกุ", schedule: repeatWeek(["2-4ตัว", "2-4ตัว", "2-4ตัว", "2-4ตัว", "2-4ตัว", "2-4ตัว", "2-4ตัว"]) },
+];
 const defaultState = {
   inputs: { branch: "SALAYA", dc: 953, product: "salmon56", sku: 129101, priceTier: "single", price: 380, openingStock: 0, safetyStock: 5, planMode: "mid", kgPerCarton: 22, etaDates: "24, 26, 28 Aug 2026", pricePeriod: "25–31 Aug 2026" },
   priceCatalog: defaultCatalog,
@@ -20,6 +34,7 @@ const defaultState = {
     { date: "2026-09-04", days: 3, retail: 19, promo: 0 },
   ],
   customers: [],
+  customerPlans: defaultCustomerPlans,
 };
 let state = structuredClone(defaultState);
 let sourceReady = false;
@@ -33,12 +48,27 @@ function customerCartons(row) {
   const min = number(row.min); const max = number(row.max);
   return (state.inputs.planMode === "high" ? max : (min + max) / 2) / divisor;
 }
+function orderToCartons(value) {
+  const raw = String(value ?? "").trim(); if (!raw) return 0;
+  const values = (raw.match(/\d+(?:\.\d+)?/g) || []).map(Number); if (!values.length) return 0;
+  const average = values.reduce((sum, item) => sum + item, 0) / values.length;
+  return /ตัว/.test(raw) ? average / 4 : average;
+}
+function customerWeekTotals() {
+  return Array.from({ length: 4 }, (_, week) => state.customerPlans.reduce((sum, customer) => sum + customer.schedule.slice(week * 7, week * 7 + 7).reduce((daily, value) => daily + orderToCartons(value), 0), 0));
+}
+function regularCustomerDemand(round) {
+  const firstDate = new Date(`${state.rounds[0]?.date || "2026-08-31"}T00:00:00`); const monday = new Date(firstDate);
+  monday.setDate(firstDate.getDate() - ((firstDate.getDay() + 6) % 7));
+  const arrival = new Date(`${round.date}T00:00:00`); const start = Math.round((arrival - monday) / 86400000);
+  return Array.from({ length: number(round.days) }, (_, day) => state.customerPlans.reduce((sum, customer) => sum + orderToCartons(customer.schedule[start + day]), 0)).reduce((sum, value) => sum + value, 0);
+}
 function plannedData() {
   let stock = number(state.inputs.openingStock);
   const safety = number(state.inputs.safetyStock);
   const kgPerCarton = number(state.inputs.kgPerCarton);
   return state.rounds.map((round, index) => {
-    const customer = state.customers.filter((row) => Number(row.round) === index + 1).reduce((sum, row) => sum + customerCartons(row), 0);
+    const customer = regularCustomerDemand(round);
     const demand = number(round.days) * number(round.retail) + customer + number(round.promo);
     const recommended = Math.ceil(Math.max(0, demand + safety - stock));
     const closing = stock + recommended - demand;
@@ -59,27 +89,20 @@ function renderRounds() {
   $$("[data-round]").forEach((input) => input.addEventListener("input", (event) => { state.rounds[event.target.dataset.round][event.target.dataset.key] = event.target.value; update(); }));
 }
 function renderCustomers() {
-  customerRows.innerHTML = "";
-  state.customers.forEach((row, index) => {
-    const fragment = template.content.cloneNode(true);
-    const tr = fragment.querySelector("tr");
-    tr.querySelector(".customer-round").value = row.round;
-    tr.querySelector(".customer-name").value = row.name;
-    tr.querySelector(".customer-unit").value = row.unit;
-    tr.querySelector(".customer-min").value = row.min;
-    tr.querySelector(".customer-max").value = row.max;
-    tr.querySelector(".customer-confirmed").value = row.confirmed;
-    tr.querySelector(".customer-selected").textContent = decimal(customerCartons(row));
-    tr.querySelector(".customer-kg").textContent = decimal(customerCartons(row) * number(state.inputs.kgPerCarton));
-    tr.querySelectorAll("input,select").forEach((element) => element.addEventListener("input", () => {
-      state.customers[index] = { round: tr.querySelector(".customer-round").value, name: tr.querySelector(".customer-name").value, unit: tr.querySelector(".customer-unit").value, min: tr.querySelector(".customer-min").value, max: tr.querySelector(".customer-max").value, confirmed: tr.querySelector(".customer-confirmed").value };
-      persistState();
-      update();
-    }));
-    tr.querySelector(".delete-customer").addEventListener("click", () => { state.customers.splice(index, 1); persistState(); update(); });
-    customerRows.append(fragment);
-  });
+  const dayNames = ["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"];
+  $("#customerHead").innerHTML = `<tr><th rowspan="2" class="customer-name-head">ลูกค้าประจำ</th>${[1, 2, 3, 4].map((week) => `<th colspan="7" class="week-head week-${week}">สัปดาห์ที่ ${week}</th>`).join("")}<th rowspan="2">รวม 4 สัปดาห์<br>(ลัง)</th><th rowspan="2"></th></tr><tr>${Array.from({ length: 4 }, () => dayNames.map((day) => `<th>${day}</th>`).join("")).join("")}</tr>`;
+  customerRows.innerHTML = state.customerPlans.map((customer, index) => {
+    const weekly = Array.from({ length: 4 }, (_, week) => customer.schedule.slice(week * 7, week * 7 + 7).reduce((sum, value) => sum + orderToCartons(value), 0));
+    const days = Array.from({ length: 28 }, (_, day) => `<td><input class="customer-day" data-customer="${index}" data-day="${day}" value="${escapeHtml(customer.schedule[day] ?? "")}" aria-label="${escapeHtml(customer.name || "ลูกค้าใหม่")} วันที่ ${day + 1}" /></td>`).join("");
+    return `<tr><td class="customer-name"><input class="customer-name-input" data-customer-name="${index}" value="${escapeHtml(customer.name)}" placeholder="ชื่อลูกค้าใหม่" /></td>${days}<td class="customer-total">${decimal(weekly.reduce((sum, value) => sum + value, 0))}</td><td><button class="icon-button delete-customer" data-delete-customer="${index}" aria-label="ลบลูกค้า">×</button></td></tr>`;
+  }).join("");
+  const totals = customerWeekTotals();
+  $("#customerWeekSummary").innerHTML = [...totals, totals.reduce((sum, value) => sum + value, 0)].map((value, index) => `<div><span>${index < 4 ? `สัปดาห์ ${index + 1}` : "รวม 4 สัปดาห์"}</span><strong>${decimal(value)}</strong><small>ลัง</small></div>`).join("");
+  $$(".customer-day").forEach((input) => input.addEventListener("change", (event) => { const { customer, day } = event.target.dataset; state.customerPlans[customer].schedule[day] = event.target.value; persistState(); update(); }));
+  $$(".customer-name-input").forEach((input) => input.addEventListener("change", (event) => { state.customerPlans[event.target.dataset.customerName].name = event.target.value; persistState(); update(); }));
+  $$(".delete-customer").forEach((button) => button.addEventListener("click", () => { state.customerPlans.splice(button.dataset.deleteCustomer, 1); persistState(); update(); }));
 }
+function escapeHtml(value) { return String(value ?? "").replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[character])); }
 function persistState() { localStorage.setItem("plan-salmon-salaya", JSON.stringify(state)); }
 function setSourceReady(ready) { sourceReady = ready; $("#sourceGate").hidden = ready; $("#plannerContent").hidden = !ready; }
 function thaiDate(value) {
@@ -165,13 +188,13 @@ function firstSheetRowsFromXlsx(entries) {
   xmlNodes(sheetDocument, "c").forEach((cell) => { const reference = cell.getAttribute("r"); if (!reference) return; const rowNumber = Number(reference.match(/\d+/)[0]); const valueNode = childNode(cell, "v"); const inlineNode = childNode(cell, "is"); let value = inlineNode ? inlineNode.textContent : valueNode?.textContent || ""; if (cell.getAttribute("t") === "s") value = sharedStrings[Number(value)] || ""; if (!rows.has(rowNumber)) rows.set(rowNumber, []); rows.get(rowNumber)[columnIndex(reference)] = value; });
   return { sheetName: sheet.getAttribute("name"), rows: [...rows.entries()].sort((a, b) => a[0] - b[0]).map(([, row]) => row || []) };
 }
-function extractCustomerNames({ sheetName, rows }) {
+function extractCustomerPlan({ sheetName, rows }) {
   const headingIndex = rows.findIndex((row) => /ลูกค้าประจำ|ชื่อลูกค้า/i.test(String(row[0] || "")));
   const start = headingIndex >= 0 ? headingIndex + 1 : 0;
   const ignored = /^(salmon customer plan|กรอกข้อมูล|ใส่ชื่อลูกค้า|ลูกค้าประจำ)$/i;
-  const names = rows.slice(start).map((row) => String(row[0] || "").trim()).filter((name) => name && !ignored.test(name) && !/^①|^②/.test(name));
-  const uniqueNames = [...new Set(names)]; if (!uniqueNames.length) throw new Error("ไม่พบรายชื่อลูกค้าในคอลัมน์แรกของชีทแรก");
-  return { sheetName, names: uniqueNames };
+  const customers = rows.slice(start).map((row) => ({ name: String(row[0] || "").trim(), schedule: Array.from({ length: 28 }, (_, day) => String(row[day + 1] ?? "").trim()) })).filter((customer) => customer.name && !ignored.test(customer.name) && !/^①|^②/.test(customer.name));
+  if (!customers.length) throw new Error("ไม่พบรายชื่อลูกค้าในคอลัมน์แรกของชีทแรก");
+  return { sheetName, customers };
 }
 function extractCatalog({ sheetName, rows }) {
   const headerIndex = rows.findIndex((row) => row.some((cell) => /item|sku|สินค้า/i.test(String(cell))) && row.some((cell) => /price|ราคา/i.test(String(cell))));
@@ -210,13 +233,12 @@ async function importPriceFile(file) {
 async function importCustomerFile(file) {
   const status = $("#customerSourceStatus");
   try {
-    status.textContent = "กำลังอ่านรายชื่อลูกค้า…";
-    const imported = extractCustomerNames(firstSheetRowsFromXlsx(await unzipXlsx(file)));
-    const existing = new Set(state.customers.map((row) => String(row.name || "").trim().toLocaleLowerCase("th-TH")));
-    const additions = imported.names.filter((name) => !existing.has(name.toLocaleLowerCase("th-TH")));
-    additions.forEach((name) => state.customers.push({ round: "1", name, unit: "carton", min: 0, max: 0, confirmed: 0 }));
+    status.textContent = "กำลังอ่านแผนลูกค้า…";
+    const imported = extractCustomerPlan(firstSheetRowsFromXlsx(await unzipXlsx(file)));
+    const existing = new Map(state.customerPlans.map((customer, index) => [String(customer.name || "").trim().toLocaleLowerCase("th-TH"), index]));
+    let additions = 0; imported.customers.forEach((customer) => { const key = customer.name.toLocaleLowerCase("th-TH"); if (existing.has(key)) state.customerPlans[existing.get(key)] = customer; else { state.customerPlans.push(customer); additions += 1; } });
     persistState(); renderCustomers();
-    status.textContent = `อ่าน ${imported.names.length} รายชื่อจากชีท ${imported.sheetName} • เพิ่มใหม่ ${additions.length} รายชื่อ`;
+    status.textContent = `อ่าน ${imported.customers.length} รายชื่อและยอดรายวันจากชีท ${imported.sheetName} • เพิ่มใหม่ ${additions} รายชื่อ`;
     if (sourceReady) update();
   } catch (error) { status.textContent = error.message || "อ่านไฟล์ลูกค้าไม่สำเร็จ"; }
 }
@@ -230,7 +252,7 @@ function downloadCsv() {
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })); a.download = "Salaya-Salmon-Plan.csv"; a.click(); URL.revokeObjectURL(a.href);
 }
 function init() {
-  const saved = localStorage.getItem("plan-salmon-salaya"); if (saved) { const stored = JSON.parse(saved); state = { ...defaultState, ...stored, inputs: { ...defaultState.inputs, ...stored.inputs }, priceCatalog: stored.priceCatalog || defaultCatalog, rounds: stored.rounds || defaultState.rounds, customers: stored.customers || [] }; }
+  const saved = localStorage.getItem("plan-salmon-salaya"); if (saved) { const stored = JSON.parse(saved); state = { ...defaultState, ...stored, inputs: { ...defaultState.inputs, ...stored.inputs }, priceCatalog: stored.priceCatalog || defaultCatalog, rounds: stored.rounds || defaultState.rounds, customers: stored.customers || [], customerPlans: stored.customerPlans || defaultCustomerPlans }; }
   renderProducts();
   syncInputs();
   setSourceReady(false);
@@ -241,9 +263,9 @@ function init() {
   $("#pricePeriod").addEventListener("input", (event) => { state.inputs.pricePeriod = event.target.value; update(); });
   $("#sourceFile").addEventListener("change", (event) => { selectedSourceFile = event.target.files[0] || null; $("#readSourceBtn").disabled = !selectedSourceFile; $("#sourceStatus").textContent = selectedSourceFile ? `ขั้นที่ 2: พร้อมอ่าน ${selectedSourceFile.name}` : "ขั้นที่ 1: เลือกไฟล์ .xlsx หรือ .xls"; });
   $("#readSourceBtn").addEventListener("click", () => { if (selectedSourceFile) importPriceFile(selectedSourceFile); });
-  $("#customerSourceFile").addEventListener("change", (event) => { selectedCustomerFile = event.target.files[0] || null; $("#readCustomerBtn").disabled = !selectedCustomerFile; $("#customerSourceStatus").textContent = selectedCustomerFile ? `พร้อมอ่าน ${selectedCustomerFile.name}` : "ยังไม่ได้อ่านไฟล์ลูกค้า • รายชื่อที่เพิ่มจะเก็บไว้ในเครื่องนี้"; });
+  $("#customerSourceFile").addEventListener("change", (event) => { selectedCustomerFile = event.target.files[0] || null; $("#readCustomerBtn").disabled = !selectedCustomerFile; $("#customerSourceStatus").textContent = selectedCustomerFile ? `พร้อมอ่าน ${selectedCustomerFile.name}` : "รายชื่อลูกค้าและแผน 4 สัปดาห์ถูกบันทึกไว้ในเครื่องนี้"; });
   $("#readCustomerBtn").addEventListener("click", () => { if (selectedCustomerFile) importCustomerFile(selectedCustomerFile); });
-  $("#addCustomerBtn").addEventListener("click", () => { state.customers.push({ round: "1", name: "", unit: "carton", min: 0, max: 0, confirmed: 0 }); persistState(); update(); });
+  $("#addCustomerBtn").addEventListener("click", () => { state.customerPlans.push({ name: "", schedule: Array(28).fill("") }); persistState(); update(); });
   $("#saveBtn").addEventListener("click", save); $("#exportBtn").addEventListener("click", downloadCsv); $("#printBtn").addEventListener("click", () => window.print());
   $("#resetBtn").addEventListener("click", () => { if (confirm("เริ่มแผนใหม่และล้างข้อมูลที่บันทึกไว้หรือไม่?")) { localStorage.removeItem("plan-salmon-salaya"); state = structuredClone(defaultState); renderProducts(); syncInputs(); setSourceReady(false); } });
   update();
