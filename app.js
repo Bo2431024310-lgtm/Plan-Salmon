@@ -105,7 +105,7 @@ function renderCustomers() {
     $(headId).innerHTML = header(label);
     $(rowsId).innerHTML = customers.map(({ customer, index }) => {
     const weekly = Array.from({ length: 4 }, (_, week) => customer.schedule.slice(week * 7, week * 7 + 7).reduce((sum, value) => addUnits(sum, value, customer.unit), { cartons: 0, fish: 0 }));
-    const days = Array.from({ length: 4 }, (_, week) => `${Array.from({ length: 7 }, (_, day) => { const indexDay = week * 7 + day; const value = customer.schedule[indexDay] ?? ""; const displayValue = type === "fish" ? orderToUnits(value, "fish")?.fish ?? "" : value; return `<td><input class="customer-day" ${type === "fish" ? 'type="number" min="0" step="0.1"' : ""} data-customer="${index}" data-day="${indexDay}" value="${escapeHtml(displayValue)}" aria-label="${escapeHtml(customer.name || "ลูกค้าใหม่")} วันที่ ${indexDay + 1}" /></td>`; }).join("")}<td class="week-column-total">${decimal(type === "carton" ? weekly[week].cartons : weekly[week].fish)}</td>`).join("");
+    const days = Array.from({ length: 4 }, (_, week) => `${Array.from({ length: 7 }, (_, day) => { const indexDay = week * 7 + day; const value = customer.schedule[indexDay] ?? ""; const fishValue = orderToUnits(value, "fish"); const displayValue = type === "fish" ? (fishValue ? Math.round(fishValue.fish) : "") : value; return `<td><input class="customer-day" ${type === "fish" ? 'type="number" min="0" step="1"' : ""} data-customer="${index}" data-day="${indexDay}" value="${escapeHtml(displayValue)}" aria-label="${escapeHtml(customer.name || "ลูกค้าใหม่")} วันที่ ${indexDay + 1}" /></td>`; }).join("")}<td class="week-column-total">${decimal(type === "carton" ? weekly[week].cartons : weekly[week].fish)}</td>`).join("");
     const total = weekly.reduce((sum, value) => ({ cartons: sum.cartons + value.cartons, fish: sum.fish + value.fish }), { cartons: 0, fish: 0 });
       const value = type === "carton" ? total.cartons : total.fish;
       return `<tr><td class="customer-name"><input class="customer-name-input" data-customer-name="${index}" value="${escapeHtml(customer.name)}" placeholder="ชื่อลูกค้าใหม่" /></td>${days}<td class="customer-total"><b>${decimal(value)} ${label}</b></td><td><button class="icon-button delete-customer" data-delete-customer="${index}" aria-label="ลบลูกค้า">×</button></td></tr>`;
@@ -118,7 +118,7 @@ function renderCustomers() {
   const totals = customerWeekTotals();
   const grandTotal = totals.reduce((sum, value) => ({ cartons: sum.cartons + value.cartons, fish: sum.fish + value.fish }), { cartons: 0, fish: 0 });
   $("#customerWeekSummary").innerHTML = [...totals, grandTotal].map((value, index) => `<div><span>${index < 4 ? `สัปดาห์ ${index + 1}` : "รวม 4 สัปดาห์"}</span><strong>${decimal(value.cartons)}</strong><small>ลัง</small><b>${decimal(value.fish)} ตัว</b></div>`).join("");
-  $$(".customer-day").forEach((input) => input.addEventListener("change", (event) => { const { customer, day } = event.target.dataset; state.customerPlans[customer].schedule[day] = event.target.value; persistState(); update(); }));
+  $$(".customer-day").forEach((input) => input.addEventListener("change", (event) => { const { customer, day } = event.target.dataset; const plan = state.customerPlans[customer]; plan.schedule[day] = plan.unit === "fish" ? String(Math.round(number(event.target.value))) : event.target.value; persistState(); update(); }));
   $$(".customer-name-input").forEach((input) => input.addEventListener("change", (event) => { state.customerPlans[event.target.dataset.customerName].name = event.target.value; persistState(); update(); }));
   $$(".delete-customer").forEach((button) => button.addEventListener("click", () => { state.customerPlans.splice(button.dataset.deleteCustomer, 1); persistState(); update(); }));
 }
@@ -275,7 +275,7 @@ function init() {
   const saved = localStorage.getItem("plan-salmon-salaya"); if (saved) { const stored = JSON.parse(saved); state = { ...defaultState, ...stored, inputs: { ...defaultState.inputs, ...stored.inputs }, priceCatalog: stored.priceCatalog || defaultCatalog, rounds: stored.rounds || defaultState.rounds, customers: stored.customers || [], customerPlans: stored.customerPlans || defaultCustomerPlans }; }
   state.customerPlans.forEach((customer) => {
     if (!customer.unit) customer.unit = customer.schedule.some((value) => /ตัว/.test(String(value))) ? "fish" : "carton";
-    if (customer.unit === "fish") customer.schedule = customer.schedule.map((value) => { const units = orderToUnits(value, "fish"); return units ? String(units.fish) : ""; });
+    if (customer.unit === "fish") customer.schedule = customer.schedule.map((value) => { const units = orderToUnits(value, "fish"); return units ? String(Math.round(units.fish)) : ""; });
   });
   persistState();
   renderProducts();
