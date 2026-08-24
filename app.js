@@ -97,13 +97,26 @@ function renderRounds() {
 }
 function renderCustomers() {
   const dayNames = ["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"];
-  $("#customerHead").innerHTML = `<tr><th rowspan="2" class="customer-name-head">ลูกค้าประจำ</th>${[1, 2, 3, 4].map((week) => `<th colspan="7" class="week-head week-${week}">สัปดาห์ที่ ${week}</th>`).join("")}<th rowspan="2">รวม 4 สัปดาห์<br>(ลัง / ตัว)</th><th rowspan="2"></th></tr><tr>${Array.from({ length: 4 }, () => dayNames.map((day) => `<th>${day}</th>`).join("")).join("")}</tr>`;
-  customerRows.innerHTML = state.customerPlans.map((customer, index) => {
+  const customerUnit = (customer) => {
+    if (customer.unit) return customer.unit;
+    return customer.schedule.some((value) => /ตัว/.test(String(value))) ? "fish" : "carton";
+  };
+  const header = (unit) => `<tr><th rowspan="2" class="customer-name-head">ลูกค้าประจำ</th>${[1, 2, 3, 4].map((week) => `<th colspan="7" class="week-head week-${week}">สัปดาห์ที่ ${week}</th>`).join("")}<th rowspan="2">รวม 4 สัปดาห์<br>(${unit})</th><th rowspan="2"></th></tr><tr>${Array.from({ length: 4 }, () => dayNames.map((day) => `<th>${day}</th>`).join("")).join("")}</tr>`;
+  const renderGroup = (type, headId, rowsId, totalId) => {
+    const label = type === "carton" ? "ลัง" : "ตัว"; const customers = state.customerPlans.map((customer, index) => ({ customer, index })).filter(({ customer }) => customerUnit(customer) === type);
+    $(headId).innerHTML = header(label);
+    $(rowsId).innerHTML = customers.map(({ customer, index }) => {
     const weekly = Array.from({ length: 4 }, (_, week) => customer.schedule.slice(week * 7, week * 7 + 7).reduce(addUnits, { cartons: 0, fish: 0 }));
     const days = Array.from({ length: 28 }, (_, day) => `<td><input class="customer-day" data-customer="${index}" data-day="${day}" value="${escapeHtml(customer.schedule[day] ?? "")}" aria-label="${escapeHtml(customer.name || "ลูกค้าใหม่")} วันที่ ${day + 1}" /></td>`).join("");
     const total = weekly.reduce((sum, value) => ({ cartons: sum.cartons + value.cartons, fish: sum.fish + value.fish }), { cartons: 0, fish: 0 });
-    return `<tr><td class="customer-name"><input class="customer-name-input" data-customer-name="${index}" value="${escapeHtml(customer.name)}" placeholder="ชื่อลูกค้าใหม่" /></td>${days}<td class="customer-total"><b>${decimal(total.cartons)} ลัง</b><small>${decimal(total.fish)} ตัว</small></td><td><button class="icon-button delete-customer" data-delete-customer="${index}" aria-label="ลบลูกค้า">×</button></td></tr>`;
-  }).join("");
+      const value = type === "carton" ? total.cartons : total.fish;
+      return `<tr><td class="customer-name"><input class="customer-name-input" data-customer-name="${index}" value="${escapeHtml(customer.name)}" placeholder="ชื่อลูกค้าใหม่" /></td>${days}<td class="customer-total"><b>${decimal(value)} ${label}</b></td><td><button class="icon-button delete-customer" data-delete-customer="${index}" aria-label="ลบลูกค้า">×</button></td></tr>`;
+    }).join("");
+    const groupTotal = customers.reduce((sum, { customer }) => sum + customer.schedule.reduce((daily, value) => daily + (type === "carton" ? orderToUnits(value)?.cartons || 0 : orderToUnits(value)?.fish || 0), 0), 0);
+    $(totalId).textContent = `รวม 4 สัปดาห์ ${decimal(groupTotal)} ${label}`;
+  };
+  renderGroup("carton", "#customerCartonHead", "#customerCartonRows", "#cartonGroupTotal");
+  renderGroup("fish", "#customerFishHead", "#customerFishRows", "#fishGroupTotal");
   const totals = customerWeekTotals();
   const grandTotal = totals.reduce((sum, value) => ({ cartons: sum.cartons + value.cartons, fish: sum.fish + value.fish }), { cartons: 0, fish: 0 });
   $("#customerWeekSummary").innerHTML = [...totals, grandTotal].map((value, index) => `<div><span>${index < 4 ? `สัปดาห์ ${index + 1}` : "รวม 4 สัปดาห์"}</span><strong>${decimal(value.cartons)}</strong><small>ลัง</small><b>${decimal(value.fish)} ตัว</b></div>`).join("");
@@ -274,7 +287,8 @@ function init() {
   $("#readSourceBtn").addEventListener("click", () => { if (selectedSourceFile) importPriceFile(selectedSourceFile); });
   $("#customerSourceFile").addEventListener("change", (event) => { selectedCustomerFile = event.target.files[0] || null; $("#readCustomerBtn").disabled = !selectedCustomerFile; $("#customerSourceStatus").textContent = selectedCustomerFile ? `พร้อมอ่าน ${selectedCustomerFile.name}` : "รายชื่อลูกค้าและแผน 4 สัปดาห์ถูกบันทึกไว้ในเครื่องนี้"; });
   $("#readCustomerBtn").addEventListener("click", () => { if (selectedCustomerFile) importCustomerFile(selectedCustomerFile); });
-  $("#addCustomerBtn").addEventListener("click", () => { state.customerPlans.push({ name: "", schedule: Array(28).fill("") }); persistState(); update(); });
+  $("#addCartonCustomerBtn").addEventListener("click", () => { state.customerPlans.push({ name: "", unit: "carton", schedule: Array(28).fill("") }); persistState(); update(); });
+  $("#addFishCustomerBtn").addEventListener("click", () => { state.customerPlans.push({ name: "", unit: "fish", schedule: Array(28).fill("") }); persistState(); update(); });
   $("#saveBtn").addEventListener("click", save); $("#exportBtn").addEventListener("click", downloadCsv); $("#printBtn").addEventListener("click", () => window.print());
   $("#resetBtn").addEventListener("click", () => { if (confirm("เริ่มแผนใหม่และล้างข้อมูลที่บันทึกไว้หรือไม่?")) { localStorage.removeItem("plan-salmon-salaya"); state = structuredClone(defaultState); renderProducts(); syncInputs(); setSourceReady(false); } });
   update();
