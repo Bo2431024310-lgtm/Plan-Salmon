@@ -12,7 +12,7 @@ const defaultCatalog = [
 const repeatWeek = (days) => Array.from({ length: 4 }, () => [...days]).flat();
 const defaultCustomerPlans = [
   { name: "พี่เชอร์รี่ ตลาดชลบุรี แซลมอนแคท", schedule: repeatWeek([10, 10, 10, 10, 15, 20, 20]) },
-  { name: "อูมามิ", schedule: repeatWeek(["", 18, "", "", 18, "", ""]) },
+  { name: "อูมามิ", schedule: repeatWeek(["", 15, "", "", 15, "", ""]) },
   { name: "ซูชิไข่หวานสามพราน", unit: "fish", schedule: repeatWeek([5, 5, 5, 5, 5, 5, 5]) },
   { name: "ไฟท์โตะ", unit: "fish", schedule: repeatWeek([10, 10, 10, 10, 10, 10, 10]) },
   { name: "นินจามีสามสาขา", unit: "fish", schedule: repeatWeek([5.5, 5.5, 5.5, 5.5, 5.5, 5.5, 5.5]) },
@@ -276,6 +276,7 @@ function init() {
   state.customerPlans.forEach((customer) => {
     if (!customer.unit) customer.unit = customer.schedule.some((value) => /ตัว/.test(String(value))) ? "fish" : "carton";
     customer.schedule = customer.schedule.map((value) => { const units = orderToUnits(value, customer.unit); return units ? String(Math.round(customer.unit === "fish" ? units.fish : units.cartons)) : ""; });
+    if (customer.name === "อูมามิ") customer.schedule = customer.schedule.map((value) => String(value) === "18" ? "15" : value);
   });
   persistState();
   renderProducts();
