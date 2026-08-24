@@ -62,6 +62,11 @@ function addUnits(total, value, unit = "") {
 function customerWeekTotals() {
   return Array.from({ length: 4 }, (_, week) => state.customerPlans.reduce((total, customer) => customer.schedule.slice(week * 7, week * 7 + 7).reduce((sum, value) => addUnits(sum, value, customer.unit), total), { cartons: 0, fish: 0 }));
 }
+function renderCustomerWeekSummary() {
+  const totals = customerWeekTotals();
+  const grandTotal = totals.reduce((sum, value) => ({ cartons: sum.cartons + value.cartons, fish: sum.fish + value.fish }), { cartons: 0, fish: 0 });
+  $("#customerWeekSummary").innerHTML = [...totals, grandTotal].map((value, index) => `<div><span>${index < 4 ? `สัปดาห์ ${index + 1}` : "รวม 4 สัปดาห์"}</span><strong>${decimal(value.cartons)}</strong><small>ลัง</small><b>${decimal(value.fish)} ตัว</b></div>`).join("");
+}
 function regularCustomerDemand(round) {
   const firstDate = new Date(`${state.rounds[0]?.date || "2026-08-31"}T00:00:00`); const monday = new Date(firstDate);
   monday.setDate(firstDate.getDate() - ((firstDate.getDay() + 6) % 7));
@@ -115,10 +120,8 @@ function renderCustomers() {
   };
   renderGroup("carton", "#customerCartonHead", "#customerCartonRows", "#cartonGroupTotal");
   renderGroup("fish", "#customerFishHead", "#customerFishRows", "#fishGroupTotal");
-  const totals = customerWeekTotals();
-  const grandTotal = totals.reduce((sum, value) => ({ cartons: sum.cartons + value.cartons, fish: sum.fish + value.fish }), { cartons: 0, fish: 0 });
-  $("#customerWeekSummary").innerHTML = [...totals, grandTotal].map((value, index) => `<div><span>${index < 4 ? `สัปดาห์ ${index + 1}` : "รวม 4 สัปดาห์"}</span><strong>${decimal(value.cartons)}</strong><small>ลัง</small><b>${decimal(value.fish)} ตัว</b></div>`).join("");
-  $$(".customer-day").forEach((input) => input.addEventListener("change", (event) => { const { customer, day } = event.target.dataset; const raw = event.target.value.trim(); state.customerPlans[customer].schedule[day] = raw === "" ? "" : String(Math.round(number(raw))); persistState(); update(); }));
+  renderCustomerWeekSummary();
+  $$(".customer-day").forEach((input) => input.addEventListener("input", (event) => { const { customer, day } = event.target.dataset; const raw = event.target.value.trim(); state.customerPlans[customer].schedule[day] = raw === "" ? "" : String(Math.round(number(raw))); persistState(); renderCustomerWeekSummary(); if (sourceReady) { renderWeeklyPlan(); renderRounds(); } }));
   $$(".customer-name-input").forEach((input) => input.addEventListener("change", (event) => { state.customerPlans[event.target.dataset.customerName].name = event.target.value; persistState(); update(); }));
   $$(".delete-customer").forEach((button) => button.addEventListener("click", () => { state.customerPlans.splice(button.dataset.deleteCustomer, 1); persistState(); update(); }));
 }
