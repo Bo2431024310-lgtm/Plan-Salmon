@@ -48,14 +48,21 @@ function customerCartons(row) {
   const min = number(row.min); const max = number(row.max);
   return (state.inputs.planMode === "high" ? max : (min + max) / 2) / divisor;
 }
-function orderToCartons(value) {
+function orderToUnits(value) {
   const raw = String(value ?? "").trim(); if (!raw) return 0;
   const values = (raw.match(/\d+(?:\.\d+)?/g) || []).map(Number); if (!values.length) return 0;
   const average = values.reduce((sum, item) => sum + item, 0) / values.length;
-  return /ตัว/.test(raw) ? average / 4 : average;
+  return /ตัว/.test(raw) ? { cartons: 0, fish: average } : { cartons: average, fish: 0 };
+}
+function orderToCartons(value) {
+  const units = orderToUnits(value); return units ? units.cartons + units.fish / 4 : 0;
+}
+function addUnits(total, value) {
+  const units = orderToUnits(value); if (!units) return total;
+  return { cartons: total.cartons + units.cartons, fish: total.fish + units.fish };
 }
 function customerWeekTotals() {
-  return Array.from({ length: 4 }, (_, week) => state.customerPlans.reduce((sum, customer) => sum + customer.schedule.slice(week * 7, week * 7 + 7).reduce((daily, value) => daily + orderToCartons(value), 0), 0));
+  return Array.from({ length: 4 }, (_, week) => state.customerPlans.reduce((total, customer) => customer.schedule.slice(week * 7, week * 7 + 7).reduce(addUnits, total), { cartons: 0, fish: 0 }));
 }
 function regularCustomerDemand(round) {
   const firstDate = new Date(`${state.rounds[0]?.date || "2026-08-31"}T00:00:00`); const monday = new Date(firstDate);
@@ -90,14 +97,16 @@ function renderRounds() {
 }
 function renderCustomers() {
   const dayNames = ["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"];
-  $("#customerHead").innerHTML = `<tr><th rowspan="2" class="customer-name-head">ลูกค้าประจำ</th>${[1, 2, 3, 4].map((week) => `<th colspan="7" class="week-head week-${week}">สัปดาห์ที่ ${week}</th>`).join("")}<th rowspan="2">รวม 4 สัปดาห์<br>(ลัง)</th><th rowspan="2"></th></tr><tr>${Array.from({ length: 4 }, () => dayNames.map((day) => `<th>${day}</th>`).join("")).join("")}</tr>`;
+  $("#customerHead").innerHTML = `<tr><th rowspan="2" class="customer-name-head">ลูกค้าประจำ</th>${[1, 2, 3, 4].map((week) => `<th colspan="7" class="week-head week-${week}">สัปดาห์ที่ ${week}</th>`).join("")}<th rowspan="2">รวม 4 สัปดาห์<br>(ลัง / ตัว)</th><th rowspan="2"></th></tr><tr>${Array.from({ length: 4 }, () => dayNames.map((day) => `<th>${day}</th>`).join("")).join("")}</tr>`;
   customerRows.innerHTML = state.customerPlans.map((customer, index) => {
-    const weekly = Array.from({ length: 4 }, (_, week) => customer.schedule.slice(week * 7, week * 7 + 7).reduce((sum, value) => sum + orderToCartons(value), 0));
+    const weekly = Array.from({ length: 4 }, (_, week) => customer.schedule.slice(week * 7, week * 7 + 7).reduce(addUnits, { cartons: 0, fish: 0 }));
     const days = Array.from({ length: 28 }, (_, day) => `<td><input class="customer-day" data-customer="${index}" data-day="${day}" value="${escapeHtml(customer.schedule[day] ?? "")}" aria-label="${escapeHtml(customer.name || "ลูกค้าใหม่")} วันที่ ${day + 1}" /></td>`).join("");
-    return `<tr><td class="customer-name"><input class="customer-name-input" data-customer-name="${index}" value="${escapeHtml(customer.name)}" placeholder="ชื่อลูกค้าใหม่" /></td>${days}<td class="customer-total">${decimal(weekly.reduce((sum, value) => sum + value, 0))}</td><td><button class="icon-button delete-customer" data-delete-customer="${index}" aria-label="ลบลูกค้า">×</button></td></tr>`;
+    const total = weekly.reduce((sum, value) => ({ cartons: sum.cartons + value.cartons, fish: sum.fish + value.fish }), { cartons: 0, fish: 0 });
+    return `<tr><td class="customer-name"><input class="customer-name-input" data-customer-name="${index}" value="${escapeHtml(customer.name)}" placeholder="ชื่อลูกค้าใหม่" /></td>${days}<td class="customer-total"><b>${decimal(total.cartons)} ลัง</b><small>${decimal(total.fish)} ตัว</small></td><td><button class="icon-button delete-customer" data-delete-customer="${index}" aria-label="ลบลูกค้า">×</button></td></tr>`;
   }).join("");
   const totals = customerWeekTotals();
-  $("#customerWeekSummary").innerHTML = [...totals, totals.reduce((sum, value) => sum + value, 0)].map((value, index) => `<div><span>${index < 4 ? `สัปดาห์ ${index + 1}` : "รวม 4 สัปดาห์"}</span><strong>${decimal(value)}</strong><small>ลัง</small></div>`).join("");
+  const grandTotal = totals.reduce((sum, value) => ({ cartons: sum.cartons + value.cartons, fish: sum.fish + value.fish }), { cartons: 0, fish: 0 });
+  $("#customerWeekSummary").innerHTML = [...totals, grandTotal].map((value, index) => `<div><span>${index < 4 ? `สัปดาห์ ${index + 1}` : "รวม 4 สัปดาห์"}</span><strong>${decimal(value.cartons)}</strong><small>ลัง</small><b>${decimal(value.fish)} ตัว</b></div>`).join("");
   $$(".customer-day").forEach((input) => input.addEventListener("change", (event) => { const { customer, day } = event.target.dataset; state.customerPlans[customer].schedule[day] = event.target.value; persistState(); update(); }));
   $$(".customer-name-input").forEach((input) => input.addEventListener("change", (event) => { state.customerPlans[event.target.dataset.customerName].name = event.target.value; persistState(); update(); }));
   $$(".delete-customer").forEach((button) => button.addEventListener("click", () => { state.customerPlans.splice(button.dataset.deleteCustomer, 1); persistState(); update(); }));
@@ -271,3 +280,4 @@ function init() {
   update();
 }
 init();
+
