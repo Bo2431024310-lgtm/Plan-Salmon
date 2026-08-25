@@ -32,7 +32,7 @@ const defaultState = {
     { date: "2026-09-04", days: 3, retail: 19, promo: 0 },
   ],
   customers: [],
-  customerCalendar: { month: 8, year: 2569 },
+  customerCalendar: { month: 8, year: 2026 },
   customerPlans: defaultCustomerPlans,
 };
 let state = structuredClone(defaultState);
@@ -101,8 +101,7 @@ function renderRounds() {
 }
 function renderCustomers() {
   const calendar = state.customerCalendar || defaultState.customerCalendar;
-  const gregorianYear = Number(calendar.year) > 2400 ? Number(calendar.year) - 543 : Number(calendar.year);
-  const firstDate = new Date(gregorianYear, Number(calendar.month) - 1, 1);
+  const firstDate = new Date(Number(calendar.year), Number(calendar.month) - 1, 1);
   const dayNames = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
   const dayHeaders = Array.from({ length: 28 }, (_, index) => {
     const date = new Date(firstDate); date.setDate(firstDate.getDate() + index);
@@ -298,7 +297,7 @@ function init() {
     customer.schedule = customer.schedule.map((value) => { const units = orderToUnits(value, customer.unit); return units ? String(Math.round(customer.unit === "fish" ? units.fish : units.cartons)) : ""; });
     if (customer.name === "อูมามิ") customer.schedule = customer.schedule.map((value) => String(value) === "18" ? "15" : value);
   });
-  if (Number(state.customerCalendar.year) < 2400) state.customerCalendar.year = Number(state.customerCalendar.year) + 543;
+  if (Number(state.customerCalendar.year) > 2400) state.customerCalendar.year = Number(state.customerCalendar.year) - 543;
   persistState();
   renderProducts();
   syncInputs();
