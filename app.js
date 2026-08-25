@@ -32,6 +32,7 @@ const defaultState = {
     { date: "2026-09-04", days: 3, retail: 19, promo: 0 },
   ],
   customers: [],
+  customerCalendar: { month: 8, year: 2026 },
   customerPlans: defaultCustomerPlans,
 };
 let state = structuredClone(defaultState);
@@ -99,12 +100,20 @@ function renderRounds() {
   $$("[data-round]").forEach((input) => input.addEventListener("input", (event) => { state.rounds[event.target.dataset.round][event.target.dataset.key] = event.target.value; update(); }));
 }
 function renderCustomers() {
-  const dayNames = ["จ", "อ", "พ", "พฤ", "ศ", "ส", "อา"];
+  const calendar = state.customerCalendar || defaultState.customerCalendar;
+  const firstDate = new Date(Number(calendar.year), Number(calendar.month) - 1, 1);
+  const dayNames = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
+  const dayHeaders = Array.from({ length: 28 }, (_, index) => {
+    const date = new Date(firstDate); date.setDate(firstDate.getDate() + index);
+    return { day: dayNames[date.getDay()], date: date.getDate() };
+  });
+  $("#customerMonth").value = String(calendar.month);
+  $("#customerYear").value = String(calendar.year);
   const customerUnit = (customer) => {
     if (customer.unit) return customer.unit;
     return customer.schedule.some((value) => /ตัว/.test(String(value))) ? "fish" : "carton";
   };
-  const header = (unit) => `<tr><th rowspan="2" class="customer-name-head">ลูกค้าประจำ</th>${[1, 2, 3, 4].map((week) => `<th colspan="8" class="week-head week-${week}">สัปดาห์ที่ ${week}</th>`).join("")}<th rowspan="2">รวม 4 สัปดาห์<br>(${unit})</th></tr><tr>${Array.from({ length: 4 }, () => `${dayNames.map((day) => `<th>${day}</th>`).join("")}<th class="week-column-total">รวม</th>`).join("")}</tr>`;
+  const header = (unit) => `<tr><th rowspan="2" class="customer-name-head">ลูกค้าประจำ</th>${[1, 2, 3, 4].map((week) => `<th colspan="8" class="week-head week-${week}">สัปดาห์ที่ ${week}</th>`).join("")}<th rowspan="2">รวม 4 สัปดาห์<br>(${unit})</th></tr><tr>${Array.from({ length: 4 }, (_, week) => `${dayHeaders.slice(week * 7, week * 7 + 7).map(({ day, date }) => `<th class="calendar-day"><span>${day}</span><small>${date}</small></th>`).join("")}<th class="week-column-total">รวม</th>`).join("")}</tr>`;
   const renderGroup = (type, headId, rowsId, totalId) => {
     const label = type === "carton" ? "ลัง" : "ตัว"; const customers = state.customerPlans.map((customer, index) => ({ customer, index })).filter(({ customer }) => customerUnit(customer) === type);
     $(headId).innerHTML = header(label);
@@ -282,7 +291,7 @@ function downloadCsv() {
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })); a.download = "Salaya-Salmon-Plan.csv"; a.click(); URL.revokeObjectURL(a.href);
 }
 function init() {
-  const saved = localStorage.getItem("plan-salmon-salaya"); if (saved) { const stored = JSON.parse(saved); state = { ...defaultState, ...stored, inputs: { ...defaultState.inputs, ...stored.inputs }, priceCatalog: stored.priceCatalog || defaultCatalog, rounds: stored.rounds || defaultState.rounds, customers: stored.customers || [], customerPlans: stored.customerPlans || defaultCustomerPlans }; }
+  const saved = localStorage.getItem("plan-salmon-salaya"); if (saved) { const stored = JSON.parse(saved); state = { ...defaultState, ...stored, inputs: { ...defaultState.inputs, ...stored.inputs }, customerCalendar: { ...defaultState.customerCalendar, ...stored.customerCalendar }, priceCatalog: stored.priceCatalog || defaultCatalog, rounds: stored.rounds || defaultState.rounds, customers: stored.customers || [], customerPlans: stored.customerPlans || defaultCustomerPlans }; }
   state.customerPlans.forEach((customer) => {
     if (!customer.unit) customer.unit = customer.schedule.some((value) => /ตัว/.test(String(value))) ? "fish" : "carton";
     customer.schedule = customer.schedule.map((value) => { const units = orderToUnits(value, customer.unit); return units ? String(Math.round(customer.unit === "fish" ? units.fish : units.cartons)) : ""; });
@@ -299,6 +308,8 @@ function init() {
   $("#pricePeriod").addEventListener("input", (event) => { state.inputs.pricePeriod = event.target.value; update(); });
   $("#sourceFile").addEventListener("change", (event) => { selectedSourceFile = event.target.files[0] || null; $("#readSourceBtn").disabled = !selectedSourceFile; $("#sourceStatus").textContent = selectedSourceFile ? `ขั้นที่ 2: พร้อมอ่าน ${selectedSourceFile.name}` : "ขั้นที่ 1: เลือก File .xlsx หรือ .xls"; });
   $("#readSourceBtn").addEventListener("click", () => { if (selectedSourceFile) importPriceFile(selectedSourceFile); });
+  $("#customerMonth").addEventListener("change", (event) => { state.customerCalendar.month = Number(event.target.value); persistState(); renderCustomers(); });
+  $("#customerYear").addEventListener("change", (event) => { state.customerCalendar.year = Math.min(2100, Math.max(2020, Number(event.target.value) || defaultState.customerCalendar.year)); persistState(); renderCustomers(); });
   $("#addCartonCustomerBtn").addEventListener("click", () => { state.customerPlans.push({ name: "", unit: "carton", schedule: Array(28).fill("") }); persistState(); update(); });
   $("#addFishCustomerBtn").addEventListener("click", () => { state.customerPlans.push({ name: "", unit: "fish", schedule: Array(28).fill("") }); persistState(); update(); });
   $("#resetCartonValuesBtn").addEventListener("click", () => resetCustomerValues("carton"));
