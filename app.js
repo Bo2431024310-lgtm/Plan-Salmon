@@ -113,7 +113,7 @@ function renderCustomers() {
     if (customer.unit) return customer.unit;
     return customer.schedule.some((value) => /ตัว/.test(String(value))) ? "fish" : "carton";
   };
-  const header = (unit) => `<tr><th rowspan="2" class="customer-name-head">ลูกค้าประจำ</th>${[1, 2, 3, 4].map((week) => `<th colspan="8" class="week-head week-${week}">สัปดาห์ที่ ${week}</th>`).join("")}<th rowspan="2">รวม 4 สัปดาห์<br>(${unit})</th></tr><tr>${Array.from({ length: 4 }, (_, week) => `${dayHeaders.slice(week * 7, week * 7 + 7).map(({ day, date }) => `<th class="calendar-day"><span>${day}</span><small>${date}</small></th>`).join("")}<th class="week-column-total">รวม</th>`).join("")}</tr>`;
+  const header = (unit) => `<tr><th rowspan="2" class="customer-name-head">ลูกค้าประจำ</th>${[1, 2, 3, 4].map((week) => `<th colspan="8" class="week-head week-${week}">สัปดาห์ที่ ${week}</th>`).join("")}<th rowspan="2">รวม 4 สัปดาห์<br>(${unit})</th></tr><tr>${Array.from({ length: 4 }, (_, week) => `${dayHeaders.slice(week * 7, week * 7 + 7).map(({ day, date }) => `<th class="calendar-day">${day} <span>${date}</span></th>`).join("")}<th class="week-column-total">รวม</th>`).join("")}</tr>`;
   const renderGroup = (type, headId, rowsId, totalId) => {
     const label = type === "carton" ? "ลัง" : "ตัว"; const customers = state.customerPlans.map((customer, index) => ({ customer, index })).filter(({ customer }) => customerUnit(customer) === type);
     $(headId).innerHTML = header(label);
