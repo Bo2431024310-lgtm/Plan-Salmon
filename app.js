@@ -267,6 +267,13 @@ async function importCustomerFile(file) {
 }
 function syncInputs() { applyProductPrice(); Object.entries(state.inputs).forEach(([key, value]) => { const el = $(`#${key}`); if (el && key !== "product") el.value = value; }); }
 function update() { applyProductPrice(); syncInputs(); renderPriceBand(); renderWeeklyPlan(); renderRounds(); renderCustomers(); }
+function resetCustomerValues(unit) {
+  const label = unit === "carton" ? "ลัง" : "ตัว";
+  if (!confirm(`Reset ตัวเลขของลูกค้าสั่งเป็น${label}ทั้งหมดหรือไม่?\nชื่อลูกค้าจะยังอยู่เหมือนเดิม`)) return;
+  state.customerPlans.forEach((customer) => { if (customer.unit === unit) customer.schedule = Array(28).fill(""); });
+  persistState();
+  update();
+}
 function save() { persistState(); $("#saveState").textContent = "บันทึกแล้ว"; setTimeout(() => { $("#saveState").textContent = ""; }, 1800); }
 function downloadCsv() {
   const headers = ["รอบ", "วันเข้า DC", "Demand (ลัง)", "แนะนำเข้า (ลัง)", "กก.", "สต๊อกปลายรอบ"];
@@ -294,6 +301,8 @@ function init() {
   $("#readSourceBtn").addEventListener("click", () => { if (selectedSourceFile) importPriceFile(selectedSourceFile); });
   $("#addCartonCustomerBtn").addEventListener("click", () => { state.customerPlans.push({ name: "", unit: "carton", schedule: Array(28).fill("") }); persistState(); update(); });
   $("#addFishCustomerBtn").addEventListener("click", () => { state.customerPlans.push({ name: "", unit: "fish", schedule: Array(28).fill("") }); persistState(); update(); });
+  $("#resetCartonValuesBtn").addEventListener("click", () => resetCustomerValues("carton"));
+  $("#resetFishValuesBtn").addEventListener("click", () => resetCustomerValues("fish"));
   $("#saveBtn").addEventListener("click", save); $("#exportBtn").addEventListener("click", downloadCsv); $("#printBtn").addEventListener("click", () => window.print());
   $("#resetBtn").addEventListener("click", () => { if (confirm("เริ่มแผนใหม่และล้างข้อมูลที่บันทึกไว้หรือไม่?")) { localStorage.removeItem("plan-salmon-salaya"); state = structuredClone(defaultState); renderProducts(); syncInputs(); setSourceReady(false); } });
   update();
