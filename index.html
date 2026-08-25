@@ -18,19 +18,19 @@
 
     <main>
       <section class="hero">
-        <div><p class="eyebrow">🐟 FRESH SALMON INBOUND PLANNER</p><h1>วางแผนปลาแซลมอนสด<br><span>ให้พอดีทุกช่วงรอบเข้า DC</span></h1><p class="lede">คำนวณจากยอดหน้าร้าน ออเดอร์ลูกค้าประจำ โปรโมชัน และสต๊อกคงเหลือ — ใช้หน่วยหลักเป็น “ลัง”</p></div>
+        <div><p class="eyebrow">🐟 FRESH SALMON INBOUND PLANNER</p><h1>วางแผนปลาแซลมอนสด<br><span>ให้พอดีทุกช่วงรอบเข้า DC</span></h1><p class="lede">คำนวณจากยอดหน้าร้าน Order ลูกค้าประจำ Promotion และ Stock คงเหลือ — ใช้หน่วยหลักเป็น “ลัง”</p></div>
       </section>
 
       <section class="panel customers-panel customer-library" aria-label="รายชื่อลูกค้าประจำ">
-        <div class="panel-title customer-sticky"><div><p class="eyebrow">👥 01 / REGULAR CUSTOMERS</p><h2>ลูกค้าประจำ — แพลน 4 สัปดาห์</h2><p class="muted">แบ่งตามหน่วยสั่ง: ตารางแรกเป็น “ลัง” และตารางถัดไปเป็น “ตัว” โดยมีผลรวมท้ายทุกสัปดาห์</p></div><div class="rule-card customer-rule-card"><span>📦 มาตรฐานสินค้า</span><strong>1 ลัง = <b>22</b> กก.</strong><small>เทียบเท่า 4 ตัว • ปลาเฉลี่ย 5–6 กก./ตัว</small></div></div>
+        <div class="panel-title customer-sticky"><div><p class="eyebrow">👥 01 / REGULAR CUSTOMERS</p><h2>ลูกค้าประจำ — Plan 4 สัปดาห์</h2><p class="muted">แบ่งตามหน่วยสั่ง: ตารางแรกเป็น “ลัง” และตารางถัดไปเป็น “ตัว” โดยมีผลรวมท้ายทุกสัปดาห์</p></div><div class="rule-card customer-rule-card"><span>📦 มาตรฐานสินค้า</span><strong>1 ลัง = <b>22</b> กก.</strong><small>เทียบเท่า 4 ตัว • ปลาเฉลี่ย 5–6 กก./ตัว</small></div></div>
         <div class="customer-week-summary" id="customerWeekSummary"></div>
         <section class="customer-group carton-group"><div class="customer-group-title"><h3>📦 ลูกค้าประจำที่สั่งเป็นลัง</h3><button class="secondary" id="addCartonCustomerBtn">＋ เพิ่มลูกค้า</button><button class="reset-customer-values" id="resetCartonValuesBtn">↻ Reset ตัวเลข</button><small id="cartonGroupTotal"></small></div><div class="table-wrap customer-table-wrap"><table id="customerCartonTable"><thead id="customerCartonHead"></thead><tbody id="customerCartonRows"></tbody></table></div></section>
         <section class="customer-group fish-group"><div class="customer-group-title"><h3>🐟 ลูกค้าประจำที่สั่งเป็นตัว</h3><button class="primary" id="addFishCustomerBtn">＋ เพิ่มลูกค้า</button><button class="reset-customer-values" id="resetFishValuesBtn">↻ Reset ตัวเลข</button><small id="fishGroupTotal"></small></div><div class="table-wrap customer-table-wrap"><table id="customerFishTable"><thead id="customerFishHead"></thead><tbody id="customerFishRows"></tbody></table></div></section>
       </section>
 
       <section class="source-gate" id="sourceGate">
-        <div class="source-icon">📥</div><div><p class="eyebrow">02 / เริ่มต้นสร้างแผน</p><h2>อัปโหลดไฟล์ Fresh Salmon TO DC ก่อน</h2><p>ระบบจะอ่านชีต <b>“ราคาสินค้า”</b> เพื่อเลือกสินค้าและราคาที่ใช้ในใบแพลน</p></div>
-        <div class="source-actions"><label class="secondary upload-source"><input id="sourceFile" type="file" accept=".xlsx,.xls" />เลือกไฟล์ Excel</label><button class="primary" id="readSourceBtn" disabled>อ่านไฟล์และเริ่มวางแผน</button></div><small id="sourceStatus">ขั้นที่ 1: เลือกไฟล์ .xlsx หรือ .xls</small>
+        <div class="source-icon">📥</div><div><p class="eyebrow">02 / เริ่มต้นสร้างแผน</p><h2>Upload File Fresh Salmon TO DC ก่อน</h2><p>ระบบจะอ่าน Sheet <b>“ราคาสินค้า”</b> เพื่อเลือกสินค้าและราคาที่ใช้ในใบ Plan</p></div>
+        <div class="source-actions"><label class="secondary upload-source"><input id="sourceFile" type="file" accept=".xlsx,.xls" />เลือก File Excel</label><button class="primary" id="readSourceBtn" disabled>อ่าน File และเริ่มวาง Plan</button></div><small id="sourceStatus">ขั้นที่ 1: เลือก File .xlsx หรือ .xls</small>
       </section>
 
       <div id="plannerContent" hidden>
@@ -43,11 +43,11 @@
         </section>
       </section>
 
-      <section class="weekly-plan" aria-label="ใบแพลนปลาแซลมอนสด">
-        <div class="weekly-title"><p>📅 ใบแพลนพร้อมส่ง / พิมพ์</p><h2>แพลนปลาแซลมอนสด รอบเข้าสาขา</h2><strong id="weeklyDates">—</strong><span id="weeklyPricePeriod">ราคาอ้างอิง —</span></div>
-        <div class="weekly-grid"><div class="weekly-product"><span>สินค้า</span><strong id="weeklyProduct">Fresh Salmon 5–6 kg</strong><small>SKU <b id="weeklySku">129101</b> • ราคา <b id="weeklyPrice">฿0</b> / กก.</small></div><div class="weekly-total"><span>รวมแผนเข้า</span><strong id="weeklyCartons">0 ลัง</strong><small id="weeklyKg">0 กก.</small></div><div class="weekly-total accent"><span>มูลค่าประมาณ</span><strong id="weeklyValue">฿0</strong><small>ตามราคาที่อัปโหลด</small></div></div>
+      <section class="weekly-plan" aria-label="ใบ Plan ปลาแซลมอนสด">
+        <div class="weekly-title"><p>📅 ใบ Plan พร้อมส่ง / พิมพ์</p><h2>Plan ปลาแซลมอนสด รอบเข้าสาขา</h2><strong id="weeklyDates">—</strong><span id="weeklyPricePeriod">ราคาอ้างอิง —</span></div>
+        <div class="weekly-grid"><div class="weekly-product"><span>สินค้า</span><strong id="weeklyProduct">Fresh Salmon 5–6 kg</strong><small>SKU <b id="weeklySku">129101</b> • ราคา <b id="weeklyPrice">฿0</b> / กก.</small></div><div class="weekly-total"><span>รวมแผนเข้า</span><strong id="weeklyCartons">0 ลัง</strong><small id="weeklyKg">0 กก.</small></div><div class="weekly-total accent"><span>มูลค่าประมาณ</span><strong id="weeklyValue">฿0</strong><small>ตามราคาที่ Upload</small></div></div>
         <div class="weekly-rounds" id="weeklyRounds"></div>
-        <div class="weekly-footer">ผู้จัดทำแผน: <b>SALAYA St.68</b> • ตรวจสอบจำนวนจริงและยืนยันออเดอร์ก่อนส่งคำสั่ง</div>
+        <div class="weekly-footer">ผู้จัดทำแผน: <b>SALAYA St.68</b> • ตรวจสอบจำนวนจริงและยืนยัน Order ก่อนส่งคำสั่ง</div>
       </section>
 
       <section class="workspace">
@@ -60,27 +60,27 @@
             <label>SKU หลัก<input id="sku" type="number" value="129101" readonly /></label>
             <label>ระดับราคา<select id="priceTier"><option value="single">1 ลัง</option><option value="ten">10 ลัง</option><option value="standard">ราคาปกติ</option></select></label>
             <label>ราคา / กก. (บาท)<input id="price" type="number" value="380" min="0" readonly /></label>
-            <label>สต๊อกต้นงวด (ลัง)<input id="openingStock" type="number" value="0" min="0" step="0.5" /></label>
+            <label>Stock ต้นงวด (ลัง)<input id="openingStock" type="number" value="0" min="0" step="0.5" /></label>
             <label>Safety stock (ลัง)<input id="safetyStock" type="number" value="5" min="0" step="0.5" /></label>
             <label>ใช้ยอดลูกค้าช่วง<select id="planMode"><option value="mid">ค่ากลางของช่วง</option><option value="high">ค่าสูงเพื่อเผื่อของ</option></select></label>
             <label>น้ำหนัก / ลัง<input id="kgPerCarton" type="number" value="22" min="1" step="0.1" /></label>
           </div>
-          <div class="hint"><b>วิธีคิด:</b> เลือกสินค้าและระดับราคาจากส่วนราคาปลาด้านบน แล้วระบบจะสร้างใบแพลนอัตโนมัติ</div>
+          <div class="hint"><b>วิธีคิด:</b> เลือกสินค้าและระดับราคาจากส่วนราคาปลาด้านบน แล้วระบบจะสร้างใบ Plan อัตโนมัติ</div>
         </aside>
 
         <section class="planner panel">
           <div class="panel-title"><div><p class="eyebrow">🚚 02 / DC ARRIVALS</p><h2>แผนแต่ละรอบเข้า DC</h2></div><span class="legend"><i></i> แก้ไขได้</span></div>
           <div class="table-wrap">
             <table id="roundTable">
-              <thead><tr><th>รอบ</th><th>วันเข้า DC</th><th>วันครอบคลุม</th><th>หน้าร้าน / วัน</th><th>ลูกค้าประจำ</th><th>โปรโมชันเพิ่ม</th><th>Demand</th><th>สต๊อกก่อนเข้า</th><th>แนะนำเข้า</th><th>กก.</th><th>ปลายรอบ</th></tr></thead>
+              <thead><tr><th>รอบ</th><th>วันเข้า DC</th><th>วันครอบคลุม</th><th>หน้าร้าน / วัน</th><th>ลูกค้าประจำ</th><th>Promotion เพิ่ม</th><th>Demand</th><th>Stock ก่อนเข้า</th><th>แนะนำเข้า</th><th>กก.</th><th>Stock ปลายรอบ</th></tr></thead>
               <tbody id="roundRows"></tbody>
             </table>
           </div>
-          <p class="formula">สูตร: <b>แนะนำเข้า</b> = ปัดขึ้น [Demand ครอบคลุม + Safety stock − สต๊อกก่อนเข้า]</p>
+          <p class="formula">สูตร: <b>แนะนำเข้า</b> = ปัดขึ้น [Demand ครอบคลุม + Safety Stock − Stock ก่อนเข้า]</p>
         </section>
       </section>
 
-      <section class="panel guidance"><div class="guidance-icon">✅</div><div><h2>เช็กก่อนส่งแผน</h2><p>ตรวจสต๊อกจริง ยอดลูกค้าที่ยืนยันแล้ว ยอดโปรโมชัน และวัน/เวลาเข้าของ DC ก่อนอนุมัติแผนทุกครั้ง</p></div><button class="primary" id="saveBtn">💾 บันทึกในเครื่อง</button><span id="saveState" class="save-state"></span></section>
+      <section class="panel guidance"><div class="guidance-icon">✅</div><div><h2>เช็กก่อนส่งแผน</h2><p>ตรวจ Stock จริง ยอดลูกค้าที่ยืนยันแล้ว ยอด Promotion และวัน/เวลาเข้าของ DC ก่อนอนุมัติแผนทุกครั้ง</p></div><button class="primary" id="saveBtn">💾 บันทึกในเครื่อง</button><span id="saveState" class="save-state"></span></section>
       </div>
     </main>
     <template id="customerTemplate"><tr><td><select class="customer-round"><option value="1">รอบ 1</option><option value="2">รอบ 2</option><option value="3">รอบ 3</option></select></td><td><input class="customer-name" placeholder="ชื่อลูกค้า" /></td><td><select class="customer-unit"><option value="carton">ลัง</option><option value="fish">ตัว</option></select></td><td><input class="customer-min" type="number" value="0" min="0" step="0.5" /></td><td><input class="customer-max" type="number" value="0" min="0" step="0.5" /></td><td><input class="customer-confirmed" type="number" value="0" min="0" step="0.5" /></td><td class="customer-selected">0</td><td class="customer-kg">0</td><td><button class="icon-button delete-customer" aria-label="ลบลูกค้า">×</button></td></tr></template>
