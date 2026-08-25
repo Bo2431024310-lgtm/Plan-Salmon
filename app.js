@@ -169,17 +169,17 @@ async function unzipXlsx(file) {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const u16 = (offset) => view.getUint16(offset, true); const u32 = (offset) => view.getUint32(offset, true);
   let eocd = -1; for (let offset = bytes.length - 22; offset >= Math.max(0, bytes.length - 65557); offset -= 1) { if (u32(offset) === 0x06054b50) { eocd = offset; break; } }
-  if (eocd < 0) throw new Error("ไฟล์ Excel ไม่สมบูรณ์");
+  if (eocd < 0) throw new Error("File Excel ไม่สมบูรณ์");
   let pointer = u32(eocd + 16); const entries = new Map(); const decoder = new TextDecoder();
   while (pointer < bytes.length && u32(pointer) === 0x02014b50) {
     const method = u16(pointer + 10); const compressedSize = u32(pointer + 20); const nameLength = u16(pointer + 28); const extraLength = u16(pointer + 30); const commentLength = u16(pointer + 32); const localOffset = u32(pointer + 42);
     const name = decoder.decode(bytes.slice(pointer + 46, pointer + 46 + nameLength));
-    if (u32(localOffset) !== 0x04034b50) throw new Error("อ่านไฟล์ Excel ไม่สำเร็จ");
+    if (u32(localOffset) !== 0x04034b50) throw new Error("อ่าน File Excel ไม่สำเร็จ");
     const localNameLength = u16(localOffset + 26); const localExtraLength = u16(localOffset + 28); const dataStart = localOffset + 30 + localNameLength + localExtraLength;
     const compressed = bytes.slice(dataStart, dataStart + compressedSize); let output;
     if (method === 0) output = compressed;
     else if (method === 8 && "DecompressionStream" in window) output = new Uint8Array(await new Response(new Blob([compressed]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer());
-    else throw new Error("เบราว์เซอร์นี้ยังไม่รองรับการอ่านไฟล์ Excel");
+    else throw new Error("Browser นี้ยังไม่รองรับการอ่าน File Excel");
     entries.set(name, decoder.decode(output)); pointer += 46 + nameLength + extraLength + commentLength;
   }
   return entries;
@@ -190,8 +190,8 @@ function sheetRowsFromXlsx(entries) {
   const workbook = parse(entries.get("xl/workbook.xml")); const relationships = parse(entries.get("xl/_rels/workbook.xml.rels"));
   const relationMap = new Map(xmlNodes(relationships, "Relationship").map((node) => [node.getAttribute("Id"), node.getAttribute("Target")]));
   const sheet = xmlNodes(workbook, "sheet").find((node) => node.getAttribute("name").trim() === "ราคาสินค้า") || xmlNodes(workbook, "sheet").find((node) => node.getAttribute("name").includes("ราคา"));
-  if (!sheet) throw new Error("ไม่พบชีตชื่อ ‘ราคาสินค้า’");
-  const target = relationMap.get(relationshipId(sheet)); if (!target) throw new Error("ไม่พบข้อมูลชีตราคา");
+  if (!sheet) throw new Error("ไม่พบ Sheet ชื่อ ‘ราคาสินค้า’");
+  const target = relationMap.get(relationshipId(sheet)); if (!target) throw new Error("ไม่พบข้อมูล Sheet ราคา");
   const parts = ["xl"]; target.split("/").forEach((part) => { if (part === "..") parts.pop(); else if (part !== ".") parts.push(part); });
   const sheetDocument = parse(entries.get(parts.join("/"))); const stringsDocument = entries.get("xl/sharedStrings.xml") ? parse(entries.get("xl/sharedStrings.xml")) : null;
   const sharedStrings = stringsDocument ? xmlNodes(stringsDocument, "si").map((node) => node.textContent || "") : [];
@@ -203,7 +203,7 @@ function firstSheetRowsFromXlsx(entries) {
   const parse = (content) => new DOMParser().parseFromString(content, "application/xml");
   const workbook = parse(entries.get("xl/workbook.xml")); const relationships = parse(entries.get("xl/_rels/workbook.xml.rels"));
   const relationMap = new Map(xmlNodes(relationships, "Relationship").map((node) => [node.getAttribute("Id"), node.getAttribute("Target")]));
-  const sheet = xmlNodes(workbook, "sheet")[0]; if (!sheet) throw new Error("ไม่พบชีทในไฟล์ลูกค้า");
+  const sheet = xmlNodes(workbook, "sheet")[0]; if (!sheet) throw new Error("ไม่พบ Sheet ใน File ลูกค้า");
   const target = relationMap.get(relationshipId(sheet)); if (!target) throw new Error("ไม่พบข้อมูลชีทลูกค้า");
   const parts = ["xl"]; target.split("/").forEach((part) => { if (part === "..") parts.pop(); else if (part !== ".") parts.push(part); });
   const sheetDocument = parse(entries.get(parts.join("/"))); const stringsDocument = entries.get("xl/sharedStrings.xml") ? parse(entries.get("xl/sharedStrings.xml")) : null;
@@ -231,26 +231,26 @@ function extractCatalog({ sheetName, rows }) {
     const sku = numericValue(row[skuColumn]); const standard = numericValue(row[priceColumn]);
     return { id: `excel-${sku}`, sku, description: String(row[descriptionColumn] || `SKU ${sku}`).trim(), standard, single: standard, ten: standard };
   }).filter((item) => item.sku && item.standard);
-  if (!catalog.length) throw new Error("ไม่พบรายการ SKU และราคาในชีต ‘ราคาสินค้า’");
+  if (!catalog.length) throw new Error("ไม่พบรายการ SKU และราคาใน Sheet ‘ราคาสินค้า’");
   return { sheetName, catalog };
 }
 async function importPriceFile(file) {
   const status = $("#priceFileStatus"); const gateStatus = $("#sourceStatus");
   try {
-    status.textContent = "กำลังอ่านไฟล์…"; gateStatus.textContent = "กำลังอ่านไฟล์…";
+    status.textContent = "กำลังอ่าน File…"; gateStatus.textContent = "กำลังอ่าน File…";
     const imported = extractCatalog(sheetRowsFromXlsx(await unzipXlsx(file)));
     state.priceCatalog = imported.catalog;
     const salmon56 = imported.catalog.find((item) => String(item.sku) === "129101");
     state.inputs.product = (salmon56 || imported.catalog[0]).id;
     state.inputs.priceTier = "standard";
-    status.textContent = `อัปเดต ${imported.catalog.length} รายการจากชีต ${imported.sheetName}`;
+    status.textContent = `Update ${imported.catalog.length} รายการจาก Sheet ${imported.sheetName}`;
     gateStatus.textContent = `อ่านสำเร็จ ${imported.catalog.length} รายการ • กำลังเปิดหน้าแผน`;
     renderProducts();
     setSourceReady(true);
     update();
   } catch (error) {
-    status.textContent = error.message || "อ่านไฟล์ไม่สำเร็จ";
-    gateStatus.textContent = error.message || "อ่านไฟล์ไม่สำเร็จ";
+    status.textContent = error.message || "อ่าน File ไม่สำเร็จ";
+    gateStatus.textContent = error.message || "อ่าน File ไม่สำเร็จ";
   }
 }
 async function importCustomerFile(file) {
@@ -263,7 +263,7 @@ async function importCustomerFile(file) {
     persistState(); renderCustomers();
     status.textContent = `อ่าน ${imported.customers.length} รายชื่อและยอดรายวันจากชีท ${imported.sheetName} • เพิ่มใหม่ ${additions} รายชื่อ`;
     if (sourceReady) update();
-  } catch (error) { status.textContent = error.message || "อ่านไฟล์ลูกค้าไม่สำเร็จ"; }
+  } catch (error) { status.textContent = error.message || "อ่าน File ลูกค้าไม่สำเร็จ"; }
 }
 function syncInputs() { applyProductPrice(); Object.entries(state.inputs).forEach(([key, value]) => { const el = $(`#${key}`); if (el && key !== "product") el.value = value; }); }
 function update() { applyProductPrice(); syncInputs(); renderPriceBand(); renderWeeklyPlan(); renderRounds(); renderCustomers(); }
@@ -276,7 +276,7 @@ function resetCustomerValues(unit) {
 }
 function save() { persistState(); $("#saveState").textContent = "บันทึกแล้ว"; setTimeout(() => { $("#saveState").textContent = ""; }, 1800); }
 function downloadCsv() {
-  const headers = ["รอบ", "วันเข้า DC", "Demand (ลัง)", "แนะนำเข้า (ลัง)", "กก.", "สต๊อกปลายรอบ"];
+  const headers = ["รอบ", "วันเข้า DC", "Demand (ลัง)", "แนะนำเข้า (ลัง)", "กก.", "Stock ปลายรอบ"];
   const data = plannedData().map((row) => [`รอบ ${row.index}`, row.date, row.demand, row.recommended, row.kg, row.closing]);
   const csv = "\uFEFF" + [headers, ...data].map((row) => row.join(",")).join("\n");
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })); a.download = "Salaya-Salmon-Plan.csv"; a.click(); URL.revokeObjectURL(a.href);
@@ -297,7 +297,7 @@ function init() {
   document.addEventListener("change", updateInput);
   $("#etaDates").addEventListener("input", (event) => { state.inputs.etaDates = event.target.value; });
   $("#pricePeriod").addEventListener("input", (event) => { state.inputs.pricePeriod = event.target.value; update(); });
-  $("#sourceFile").addEventListener("change", (event) => { selectedSourceFile = event.target.files[0] || null; $("#readSourceBtn").disabled = !selectedSourceFile; $("#sourceStatus").textContent = selectedSourceFile ? `ขั้นที่ 2: พร้อมอ่าน ${selectedSourceFile.name}` : "ขั้นที่ 1: เลือกไฟล์ .xlsx หรือ .xls"; });
+  $("#sourceFile").addEventListener("change", (event) => { selectedSourceFile = event.target.files[0] || null; $("#readSourceBtn").disabled = !selectedSourceFile; $("#sourceStatus").textContent = selectedSourceFile ? `ขั้นที่ 2: พร้อมอ่าน ${selectedSourceFile.name}` : "ขั้นที่ 1: เลือก File .xlsx หรือ .xls"; });
   $("#readSourceBtn").addEventListener("click", () => { if (selectedSourceFile) importPriceFile(selectedSourceFile); });
   $("#addCartonCustomerBtn").addEventListener("click", () => { state.customerPlans.push({ name: "", unit: "carton", schedule: Array(28).fill("") }); persistState(); update(); });
   $("#addFishCustomerBtn").addEventListener("click", () => { state.customerPlans.push({ name: "", unit: "fish", schedule: Array(28).fill("") }); persistState(); update(); });
